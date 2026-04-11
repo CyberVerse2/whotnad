@@ -249,26 +249,30 @@ export function Board({
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-            {opponentJustPlayed && lastAgentThought && (
-              <span className="animate-slide-down" style={{
-                fontSize: 11,
-                color: 'var(--accent)',
-                fontStyle: 'italic',
-                maxWidth: 280,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>
-                {lastAgentThought}
-              </span>
-            )}
-            {!gameState.isMyTurn && gameState.status === 'active' && !opponentJustPlayed && (
+            {!gameState.isMyTurn && gameState.status === 'active' && !lastAgentThought && (
               <span className="animate-turn-pulse" style={{
                 fontSize: 12,
                 color: 'var(--accent)',
                 fontStyle: 'italic',
               }}>
                 Thinking...
+              </span>
+            )}
+            {lastAgentThought && (
+              <span
+                key={gameState.turnCount}
+                className={opponentJustPlayed ? 'animate-slide-down' : ''}
+                style={{
+                  fontSize: 11,
+                  color: 'var(--text-secondary)',
+                  fontStyle: 'italic',
+                  maxWidth: 320,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {lastAgentThought}
               </span>
             )}
             <button
