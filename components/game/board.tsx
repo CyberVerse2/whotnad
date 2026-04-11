@@ -8,6 +8,15 @@ import Link from 'next/link';
 import { Card, CardBack, SHAPE_STYLES } from './card';
 import { ShapePicker } from './shape-picker';
 import { LastCardButton } from './last-card-button';
+import {
+  soundCardPlay,
+  soundCardDraw,
+  soundOpponentPlay,
+  soundYourTurn,
+  soundLastCard,
+  soundError,
+  soundPickStack,
+} from '@/lib/sounds';
 
 interface BoardProps {
   gameState: PlayerGameView;
@@ -57,6 +66,8 @@ export function Board({
 
     if (turnChanged && wasOpponentTurn && isNowMyTurn) {
       setOpponentJustPlayed(true);
+      soundOpponentPlay();
+      setTimeout(() => soundYourTurn(), 300);
 
       // Launch flying card from opponent area to top card
       const opEl = opponentSectionRef.current;
@@ -102,7 +113,13 @@ export function Board({
       if (!card) return;
       if (card.shape === 'whot') {
         setPendingWhotCardId(cardId);
+        soundCardPlay();
         return;
+      }
+      soundCardPlay();
+      // Play pick stack sound for special draw cards
+      if (card.number === 2 || card.number === 5) {
+        setTimeout(() => soundPickStack(), 100);
       }
       onPlayCard(cardId);
     },
@@ -112,6 +129,7 @@ export function Board({
   const handleShapeSelect = useCallback(
     (shape: Shape) => {
       if (pendingWhotCardId !== null) {
+        soundCardPlay();
         onPlayCard(pendingWhotCardId, shape);
         setPendingWhotCardId(null);
       }
@@ -315,7 +333,7 @@ export function Board({
             MARKET
           </span>
           <button
-            onClick={onDraw}
+            onClick={() => { soundCardDraw(); onDraw(); }}
             disabled={!canDraw}
             className={canDraw ? 'animate-pulse-glow' : ''}
             aria-label={drawHint}
@@ -523,7 +541,7 @@ export function Board({
       )}
 
       <LastCardButton
-        onDeclare={onDeclareLastCard}
+        onDeclare={() => { soundLastCard(); onDeclareLastCard(); }}
         visible={showLastCardButton}
       />
 

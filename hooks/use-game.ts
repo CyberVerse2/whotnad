@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import type { Shape } from '@/types/game';
 import type { PlayerGameView, PointsSummary } from '@/types/messages';
+import { soundWin, soundLose, soundError as soundErrorFx, soundMatchFound } from '@/lib/sounds';
 
 export type GamePhase = 'idle' | 'queued' | 'matched' | 'playing' | 'finished';
 
@@ -100,6 +101,12 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         lastAgentThinkMs: data.lastAgentThinkMs,
       }));
       stopPolling();
+      // Win/lose sound
+      if (data.view.winner === userId) {
+        soundWin();
+      } else {
+        soundLose();
+      }
       return data.view;
     }
 
@@ -151,6 +158,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       const data = await res.json();
 
       if (data.status === 'matched' && data.matchId) {
+        soundMatchFound();
         setState((s) => ({
           ...s,
           phase: 'playing',
@@ -297,6 +305,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       if (!res.ok) {
         // Revert: fetch real state
         await fetchGameState();
+        soundErrorFx();
         setState((s) => ({ ...s, error: data.error }));
         setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
         return;

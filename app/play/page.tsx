@@ -1,7 +1,7 @@
 'use client';
 
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useGame } from '@/hooks/use-game';
 import { Board } from '@/components/game/board';
@@ -27,6 +27,14 @@ const TOURNAMENT_POOL_ABI = [
 ] as const;
 
 export default function PlayPage() {
+  return (
+    <Suspense fallback={<PlayPageLoading label="LOADING MATCH..." />}>
+      <PlayPageContent />
+    </Suspense>
+  );
+}
+
+function PlayPageContent() {
   const { user, authenticated, ready } = usePrivy();
   const { wallets } = useWallets();
   const searchParams = useSearchParams();
@@ -111,23 +119,7 @@ export default function PlayPage() {
   }, [walletAddress, depositStatus]);
 
   if (!ready) {
-    return (
-      <div className="felt-texture" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-      }}>
-        <span className="font-display" style={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          letterSpacing: '0.1em',
-        }}>
-          LOADING...
-        </span>
-      </div>
-    );
+    return <PlayPageLoading label="LOADING..." />;
   }
 
   if (!authenticated || !userId) {
@@ -172,33 +164,7 @@ export default function PlayPage() {
 
   // Don't show funding screen until deposit status has actually loaded
   if (phase === 'playing' && matchIdFromUrl && requiresFunding && depositStatus === null) {
-    return (
-      <div className="felt-texture" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        gap: 10,
-      }}>
-        <div style={{
-          width: 14,
-          height: 14,
-          borderRight: '2px solid var(--accent)',
-          borderBottom: '2px solid var(--accent)',
-          borderLeft: '2px solid var(--accent)',
-          borderTop: '2px solid transparent',
-          borderRadius: '50%',
-        }} className="animate-spin" />
-        <span className="font-display" style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          letterSpacing: '0.08em',
-        }}>
-          LOADING MATCH...
-        </span>
-      </div>
-    );
+    return <PlayPageLoading label="LOADING MATCH..." spinnerColor="var(--accent)" />;
   }
 
   if (phase === 'playing' && matchIdFromUrl && requiresFunding && !fundingReady) {
@@ -449,33 +415,7 @@ export default function PlayPage() {
 
   // Waiting for game
   if (!gameState) {
-    return (
-      <div className="felt-texture" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        gap: 10,
-      }}>
-        <div style={{
-          width: 14,
-          height: 14,
-          borderRight: '2px solid var(--green-bright)',
-          borderBottom: '2px solid var(--green-bright)',
-          borderLeft: '2px solid var(--green-bright)',
-          borderTop: '2px solid transparent',
-          borderRadius: '50%',
-        }} className="animate-spin" />
-        <span className="font-display" style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          letterSpacing: '0.08em',
-        }}>
-          STARTING...
-        </span>
-      </div>
-    );
+    return <PlayPageLoading label="STARTING..." spinnerColor="var(--green-bright)" />;
   }
 
   // Active game
@@ -512,6 +452,42 @@ export default function PlayPage() {
         log={log}
       />
     </>
+  );
+}
+
+function PlayPageLoading({
+  label,
+  spinnerColor = 'var(--text-muted)',
+}: {
+  label: string;
+  spinnerColor?: string;
+}) {
+  return (
+    <div className="felt-texture" style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      gap: 10,
+    }}>
+      <div style={{
+        width: 14,
+        height: 14,
+        borderRight: `2px solid ${spinnerColor}`,
+        borderBottom: `2px solid ${spinnerColor}`,
+        borderLeft: `2px solid ${spinnerColor}`,
+        borderTop: '2px solid transparent',
+        borderRadius: '50%',
+      }} className="animate-spin" />
+      <span className="font-display" style={{
+        fontSize: 13,
+        fontWeight: 600,
+        color: 'var(--text-muted)',
+        letterSpacing: '0.08em',
+      }}>
+        {label}
+      </span>
+    </div>
   );
 }
 
