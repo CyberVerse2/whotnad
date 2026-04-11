@@ -50,6 +50,7 @@ export default function PlayPage() {
     depositStatus,
     refreshDepositStatus,
     log,
+    lastAgentThinkMs,
     playCard,
     drawCard,
     declareLastCard,
@@ -505,6 +506,7 @@ export default function PlayPage() {
         onDraw={drawCard}
         onDeclareLastCard={declareLastCard}
         onLeave={handleLeave}
+        lastAgentThinkMs={lastAgentThinkMs}
         log={log}
       />
     </>

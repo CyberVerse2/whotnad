@@ -12,7 +12,7 @@ interface AIMove {
   chosenShape?: Shape;
 }
 
-const OPENAI_MODEL = process.env.OPENAI_AGENT_MODEL || 'gpt-5.4-mini';
+const OPENAI_MODEL = process.env.OPENAI_AGENT_MODEL || 'gpt-5-nano';
 const OPENAI_TIMEOUT_MS = 4000;
 const aiMoveSchema = z.object({
   action: z.enum(['play', 'draw', 'declare_last_card']),

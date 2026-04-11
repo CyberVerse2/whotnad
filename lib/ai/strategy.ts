@@ -29,10 +29,12 @@ export function buildSystemPrompt(): string {
 
 ## Response Format
 Respond with a JSON object:
-- To play a card: {"action": "play", "cardId": <number>}
+- To play a card: {"action": "play", "cardId": <number>, "chosenShape": null}
 - To play a Whot card: {"action": "play", "cardId": <number>, "chosenShape": "<shape>"}
-- To draw: {"action": "draw"}
-- To declare Last Card: {"action": "declare_last_card"}
+- To draw: {"action": "draw", "cardId": null, "chosenShape": null}
+- To declare Last Card: {"action": "declare_last_card", "cardId": null, "chosenShape": null}
+
+CRITICAL: The cardId MUST be one of the exact [id:X] values listed in your hand. Do NOT invent or guess card IDs.
 
 Choose the BEST strategic move. Respond ONLY with the JSON, no explanation.`;
 }
@@ -56,7 +58,9 @@ export function buildGameStatePrompt(state: PlayerGameView): string {
 - Turn count: ${state.turnCount}
 
 My hand (${state.myHand.length} cards):
-${handDescription}`;
+${handDescription}
+
+Valid cardId values: ${state.myHand.map((c) => c.id).join(', ')}`;
 
   // Add specific guidance based on situation
   if (state.myHand.length === 2 && !state.lastCardDeclared) {

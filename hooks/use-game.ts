@@ -19,6 +19,7 @@ interface GameHookState {
   winner: string | null;
   points: PointsSummary | null;
   error: string | null;
+  lastAgentThinkMs: number | null;
 }
 
 interface DepositStatus {
@@ -42,8 +43,10 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     winner: null,
     points: null,
     error: null,
+    lastAgentThinkMs: null,
   });
   const [depositStatus, setDepositStatus] = useState<DepositStatus | null>(null);
+  const connected = Boolean(userId);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const matchIdRef = useRef<string | null>(initialMatchId ?? null);
@@ -89,6 +92,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         points: PointsSummary | null;
         contractMatchId: string | null;
         resultTxHash: string | null;
+        lastAgentThinkMs: number | null;
       } = await res.json();
 
       if (data.view.status === 'finished') {
@@ -100,6 +104,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
           points: data.points,
           contractMatchId: data.contractMatchId,
           resultTxHash: data.resultTxHash,
+          lastAgentThinkMs: data.lastAgentThinkMs,
         }));
         stopPolling();
         return data.view;
@@ -110,6 +115,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         phase: 'playing',
         gameState: data.view,
         contractMatchId: data.contractMatchId,
+        lastAgentThinkMs: data.lastAgentThinkMs,
         error: null,
       }));
 
@@ -188,13 +194,24 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   // ── Actions ──
 
   const joinQueue = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setState((s) => ({ ...s, error: 'Connect your wallet before joining a match' }));
+      return;
+    }
     try {
       const res = await authFetch('/api/game/queue', {
         method: 'POST',
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
+
+      if (!res.ok) {
+        setState((s) => ({
+          ...s,
+          error: typeof data?.error === 'string' ? data.error : 'Failed to join queue',
+        }));
+        return;
+      }
 
       if (data.status === 'matched' && data.matchId) {
         setState((s) => ({
@@ -321,13 +338,14 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       winner: null,
       points: null,
       error: null,
+      lastAgentThinkMs: null,
     });
     setDepositStatus(null);
   }, [stopPolling]);
 
   return {
     ...state,
-    connected: true,
+    connected,
     log: [],
     depositStatus,
     refreshDepositStatus: () => state.matchId ? pollDepositStatus(state.matchId) : Promise.resolve(null),

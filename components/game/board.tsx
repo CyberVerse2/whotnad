@@ -18,6 +18,7 @@ interface BoardProps {
   onDraw: () => void;
   onDeclareLastCard: () => void;
   onLeave: () => void;
+  lastAgentThinkMs: number | null;
   log: Array<{ turn: number; playerId: string; action: { type: string; cardId?: number; chosenShape?: string } }>;
 }
 
@@ -30,6 +31,7 @@ export function Board({
   onDraw,
   onDeclareLastCard,
   onLeave,
+  lastAgentThinkMs,
 }: BoardProps) {
   const [pendingWhotCardId, setPendingWhotCardId] = useState<number | null>(null);
 
@@ -71,6 +73,13 @@ export function Board({
   const canDraw =
     gameState.isMyTurn &&
     (playableCards.length === 0 || gameState.pendingDraws > 0);
+  const drawHint = !gameState.isMyTurn
+    ? "Wait for your turn"
+    : gameState.pendingDraws > 0
+      ? `Draw ${gameState.pendingDraws} card${gameState.pendingDraws === 1 ? '' : 's'} or stack a ${gameState.pendingDrawType}`
+      : playableCards.length > 0
+        ? 'Play a valid card before drawing from the market'
+        : 'Draw from the market';
 
   const showLastCardButton =
     gameState.isMyTurn &&
@@ -242,13 +251,16 @@ export function Board({
             onClick={onDraw}
             disabled={!canDraw}
             className={canDraw ? 'animate-pulse-glow' : ''}
+            aria-label={drawHint}
+            title={drawHint}
             style={{
               background: 'none',
               border: 'none',
               padding: 0,
-              cursor: canDraw ? 'pointer' : 'default',
+              cursor: canDraw ? 'pointer' : 'not-allowed',
               transition: 'transform 0.2s cubic-bezier(0.16,1,0.3,1)',
               position: 'relative',
+              opacity: canDraw ? 1 : 0.5,
             }}
             onMouseEnter={(e) => canDraw && (e.currentTarget.style.transform = 'translateY(-4px) scale(1.05)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0) scale(1)')}
@@ -280,12 +292,12 @@ export function Board({
           <span className="font-display" style={{
             fontSize: 11,
             fontWeight: 600,
-            color: 'var(--text-muted)',
+            color: canDraw ? 'var(--text-muted)' : 'var(--danger)',
             letterSpacing: '0.05em',
             display: 'block',
             marginTop: 6,
           }}>
-            {gameState.deckSize} LEFT
+            {canDraw ? `${gameState.deckSize} LEFT` : drawHint.toUpperCase()}
           </span>
         </div>
 
@@ -338,21 +350,39 @@ export function Board({
             <p className="font-display" style={{
               fontSize: 13,
               fontWeight: 800,
-              color: 'var(--danger)',
+              color: gameState.isMyTurn ? 'var(--danger)' : 'var(--accent)',
               letterSpacing: '0.05em',
               marginTop: 6,
             }}>
-              +{gameState.pendingDraws} CARDS PENDING
+              {gameState.isMyTurn
+                ? `YOU MUST DRAW ${gameState.pendingDraws} OR PLAY A ${gameState.pendingDrawType}`
+                : `OPPONENT OWES +${gameState.pendingDraws} CARDS`
+              }
             </p>
           )}
 
-          <p style={{
-            fontSize: 11,
-            color: 'var(--text-muted)',
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
             marginTop: 8,
           }}>
-            Turn {gameState.turnCount}
-          </p>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              Turn {gameState.turnCount}
+            </span>
+            {lastAgentThinkMs !== null && (
+              <span style={{
+                fontSize: 10,
+                color: 'var(--text-muted)',
+                background: 'var(--surface-2)',
+                padding: '2px 6px',
+                borderRadius: 4,
+              }}>
+                AI thought {(lastAgentThinkMs / 1000).toFixed(1)}s
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Top card */}

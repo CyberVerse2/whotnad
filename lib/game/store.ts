@@ -30,6 +30,7 @@ interface ActiveGame {
   contractMatchId: string | null;
   points: PointsSummary | null;
   resultTxHash: string | null;
+  lastAgentThinkMs: number | null;
 }
 
 export async function joinQueue(userId: string): Promise<{
@@ -193,6 +194,7 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
 
   const matchId = game.state.matchId;
   let move: { action: string; cardId?: number; chosenShape?: Shape };
+  const thinkStart = Date.now();
   try {
     move = await getAIMove(buildAgentView(game.state, agentId));
   } catch (err) {
@@ -201,6 +203,7 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
     console.warn(`[Agent] AI move failed, falling back to draw:`, errMsg);
     move = { action: 'draw' };
   }
+  game.lastAgentThinkMs = Date.now() - thinkStart;
 
   try {
     const cardPlayed = move.cardId !== undefined
@@ -560,6 +563,7 @@ function toActiveGame(row: MatchRow): ActiveGame | null {
     contractMatchId: row.contractMatchId ?? null,
     points: buildPointsSummary(row),
     resultTxHash: row.resultTxHash ?? null,
+    lastAgentThinkMs: null,
   };
 }
 
@@ -587,6 +591,7 @@ function buildGameStateResponse(game: ActiveGame, userId: string) {
     points: game.points,
     contractMatchId: game.contractMatchId,
     resultTxHash: game.resultTxHash,
+    lastAgentThinkMs: game.lastAgentThinkMs,
   };
 }
 
