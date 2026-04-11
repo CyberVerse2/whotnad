@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Shape } from '@/types/game';
 import type { PlayerGameView } from '@/types/messages';
 import { getPlayableCards } from '@/lib/game-engine/rules';
@@ -18,6 +18,7 @@ interface BoardProps {
   onDraw: () => void;
   onDeclareLastCard: () => void;
   onLeave: () => void;
+  onForfeit: () => void;
   lastAgentThinkMs: number | null;
   log: Array<{ turn: number; playerId: string; action: { type: string; cardId?: number; chosenShape?: string } }>;
 }
@@ -31,9 +32,57 @@ export function Board({
   onDraw,
   onDeclareLastCard,
   onLeave,
+  onForfeit,
   lastAgentThinkMs,
 }: BoardProps) {
   const [pendingWhotCardId, setPendingWhotCardId] = useState<number | null>(null);
+  const [opponentJustPlayed, setOpponentJustPlayed] = useState(false);
+  const [flyingCard, setFlyingCard] = useState<{
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    key: number;
+  } | null>(null);
+  const prevTurnRef = useRef(gameState.turnCount);
+  const prevIsMyTurnRef = useRef(gameState.isMyTurn);
+  const opponentSectionRef = useRef<HTMLDivElement>(null);
+  const topCardRef = useRef<HTMLDivElement>(null);
+
+  // Detect when opponent finishes their turn → it becomes our turn
+  useEffect(() => {
+    const turnChanged = gameState.turnCount !== prevTurnRef.current;
+    const wasOpponentTurn = !prevIsMyTurnRef.current;
+    const isNowMyTurn = gameState.isMyTurn;
+
+    if (turnChanged && wasOpponentTurn && isNowMyTurn) {
+      setOpponentJustPlayed(true);
+
+      // Launch flying card from opponent area to top card
+      const opEl = opponentSectionRef.current;
+      const topEl = topCardRef.current;
+      if (opEl && topEl) {
+        const opRect = opEl.getBoundingClientRect();
+        const topRect = topEl.getBoundingClientRect();
+        setFlyingCard({
+          x: opRect.left + opRect.width / 2 - 36,
+          y: opRect.top + opRect.height / 2 - 54,
+          targetX: topRect.left + topRect.width / 2 - 36,
+          targetY: topRect.top + topRect.height / 2 - 54,
+          key: gameState.turnCount,
+        });
+      }
+
+      const timer = setTimeout(() => {
+        setOpponentJustPlayed(false);
+        setFlyingCard(null);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+
+    prevTurnRef.current = gameState.turnCount;
+    prevIsMyTurnRef.current = gameState.isMyTurn;
+  }, [gameState.turnCount, gameState.isMyTurn]);
 
   const playableCards = gameState.isMyTurn
     ? getPlayableCards(
@@ -145,7 +194,7 @@ export function Board({
       </nav>
 
       {/* ── Section 1: Opponent ── */}
-      <section style={{
+      <section ref={opponentSectionRef} style={{
         background: 'var(--surface-1)',
         borderRadius: 10,
         padding: '16px 20px',
@@ -165,7 +214,21 @@ export function Board({
             OPPONENT — {gameState.opponentCardCount} CARDS
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {!gameState.isMyTurn && gameState.status === 'active' && (
+            {opponentJustPlayed && (
+              <span className="animate-slide-down" style={{
+                fontSize: 11,
+                fontFamily: 'var(--font-display)',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: '#fff',
+                background: 'var(--accent)',
+                padding: '3px 10px',
+                borderRadius: 4,
+              }}>
+                OPPONENT PLAYED!
+              </span>
+            )}
+            {!gameState.isMyTurn && gameState.status === 'active' && !opponentJustPlayed && (
               <span className="animate-turn-pulse" style={{
                 fontSize: 12,
                 color: 'var(--accent)',
@@ -175,7 +238,11 @@ export function Board({
               </span>
             )}
             <button
-              onClick={onLeave}
+              onClick={() => {
+                if (confirm('Forfeit this match? Your opponent will win.')) {
+                  onForfeit();
+                }
+              }}
               style={{
                 fontFamily: 'var(--font-display)',
                 fontWeight: 700,
@@ -198,7 +265,7 @@ export function Board({
                 e.currentTarget.style.color = 'var(--danger)';
               }}
             >
-              LEAVE
+              FORFEIT
             </button>
           </div>
         </div>
@@ -398,8 +465,13 @@ export function Board({
           }}>
             TOP CARD
           </span>
-          <div key={`${gameState.topCard.id}-${gameState.turnCount}`} className="animate-scale-in">
-            <Card card={gameState.topCard} size="lg" disabled />
+          <div ref={topCardRef}>
+            <div
+              key={`${gameState.topCard.id}-${gameState.turnCount}`}
+              className={opponentJustPlayed ? 'animate-card-slam' : 'animate-scale-in'}
+            >
+              <Card card={gameState.topCard} size="lg" disabled />
+            </div>
           </div>
         </div>
       </section>
@@ -454,6 +526,24 @@ export function Board({
         onDeclare={onDeclareLastCard}
         visible={showLastCardButton}
       />
+
+      {/* Flying card animation: opponent card → top card */}
+      {flyingCard && (
+        <div
+          key={flyingCard.key}
+          className="animate-card-fly"
+          style={{
+            position: 'fixed',
+            left: flyingCard.x,
+            top: flyingCard.y,
+            zIndex: 100,
+            '--fly-x': `${flyingCard.targetX - flyingCard.x}px`,
+            '--fly-y': `${flyingCard.targetY - flyingCard.y}px`,
+          } as React.CSSProperties}
+        >
+          <CardBack size="md" />
+        </div>
+      )}
     </div>
   );
 }

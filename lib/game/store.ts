@@ -338,6 +338,26 @@ export async function declareLastCard(
   });
 }
 
+export async function forfeitGame(
+  matchId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  return withMatchLock(matchId, async (tx) => {
+    const game = await loadGameForAction(matchId, tx);
+    if (!game) return { success: false, error: 'Game not found' };
+    if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
+    if (!game.state.playerOrder.includes(userId)) return { success: false, error: 'Not a player in this game' };
+
+    // Set the opponent as winner
+    const opponentId = game.state.playerOrder.find((id) => id !== userId)!;
+    game.state.winner = opponentId;
+    game.state.status = 'finished';
+
+    await finalizeGame(game, tx);
+    return { success: true };
+  });
+}
+
 async function persistTurnOutcome(game: ActiveGame, tx: DbExecutor): Promise<void> {
   if (game.state.status === 'finished') {
     await finalizeGame(game, tx);

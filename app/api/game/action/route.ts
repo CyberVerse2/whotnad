@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { playCard, drawCard, declareLastCard } from '@/lib/game/store';
+import { playCard, drawCard, declareLastCard, getGameState } from '@/lib/game/store';
 import { verifyRequest } from '@/lib/auth/verify-request';
 import type { Shape } from '@/types/game';
 
@@ -12,49 +12,62 @@ interface ActionBody {
 }
 
 export async function POST(request: NextRequest) {
-  const privyUserId = await verifyRequest(request);
-  if (!privyUserId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  try {
+    const privyUserId = await verifyRequest(request);
+    if (!privyUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  const body: ActionBody = await request.json();
-  const { matchId, action, cardId, chosenShape } = body;
+    const body: ActionBody = await request.json();
+    const { matchId, action, cardId, chosenShape } = body;
 
-  if (!matchId || !action) {
-    return NextResponse.json(
-      { error: 'matchId and action required' },
-      { status: 400 }
-    );
-  }
+    if (!matchId || !action) {
+      return NextResponse.json(
+        { error: 'matchId and action required' },
+        { status: 400 }
+      );
+    }
 
-  let result: { success: boolean; error?: string };
+    let result: { success: boolean; error?: string };
 
-  switch (action) {
-    case 'play':
-      if (cardId === undefined) {
+    switch (action) {
+      case 'play':
+        if (cardId === undefined) {
+          return NextResponse.json(
+            { error: 'cardId required for play action' },
+            { status: 400 }
+          );
+        }
+        result = await playCard(matchId, privyUserId, cardId, chosenShape);
+        break;
+
+      case 'draw':
+        result = await drawCard(matchId, privyUserId);
+        break;
+
+      case 'declare_last_card':
+        result = await declareLastCard(matchId, privyUserId);
+        break;
+
+      default:
         return NextResponse.json(
-          { error: 'cardId required for play action' },
+          { error: 'Unknown action' },
           { status: 400 }
         );
-      }
-      result = await playCard(matchId, privyUserId, cardId, chosenShape);
-      break;
+    }
 
-    case 'draw':
-      result = await drawCard(matchId, privyUserId);
-      break;
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
 
-    case 'declare_last_card':
-      result = await declareLastCard(matchId, privyUserId);
-      break;
+    const gameState = await getGameState(matchId, privyUserId);
+    if (!gameState) {
+      return NextResponse.json({ error: 'Failed to load updated game state' }, { status: 500 });
+    }
 
-    default:
-      return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
+    return NextResponse.json(gameState);
+  } catch (error) {
+    console.error('Failed to process game action', error);
+    return NextResponse.json({ error: 'Failed to process action' }, { status: 500 });
   }
-
-  if (!result.success) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
-  }
-
-  return NextResponse.json({ success: true });
 }

@@ -54,6 +54,7 @@ export default function PlayPage() {
     playCard,
     drawCard,
     declareLastCard,
+    forfeit,
     resetGame,
   } = useGame(authenticated ? userId : null, matchIdFromUrl);
 
