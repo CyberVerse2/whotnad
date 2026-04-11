@@ -28,6 +28,7 @@ interface BoardProps {
   onDeclareLastCard: () => void;
   onLeave: () => void;
   onForfeit: () => void;
+  forfeiting: boolean;
   lastAgentThinkMs: number | null;
   lastAgentThought: string | null;
   log: Array<{ turn: number; playerId: string; action: { type: string; cardId?: number; chosenShape?: string } }>;
@@ -43,6 +44,7 @@ export function Board({
   onDeclareLastCard,
   onLeave,
   onForfeit,
+  forfeiting,
   lastAgentThinkMs,
   lastAgentThought,
 }: BoardProps) {
@@ -258,10 +260,12 @@ export function Board({
             )}
             <button
               onClick={() => {
+                if (forfeiting) return;
                 if (confirm('Forfeit this match? Your opponent will win.')) {
-                  onForfeit();
+                  void onForfeit();
                 }
               }}
+              disabled={forfeiting}
               style={{
                 fontFamily: 'var(--font-display)',
                 fontWeight: 700,
@@ -272,7 +276,8 @@ export function Board({
                 border: '1px solid var(--danger)',
                 borderRadius: 4,
                 padding: '4px 10px',
-                cursor: 'pointer',
+                cursor: forfeiting ? 'wait' : 'pointer',
+                opacity: forfeiting ? 0.6 : 1,
                 transition: 'background 0.15s, color 0.15s',
               }}
               onMouseEnter={(e) => {
@@ -284,7 +289,7 @@ export function Board({
                 e.currentTarget.style.color = 'var(--danger)';
               }}
             >
-              FORFEIT
+              {forfeiting ? 'FORFEITING...' : 'FORFEIT'}
             </button>
           </div>
         </div>

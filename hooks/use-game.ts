@@ -22,6 +22,7 @@ interface GameHookState {
   error: string | null;
   lastAgentThinkMs: number | null;
   lastAgentThought: string | null;
+  forfeiting: boolean;
 }
 
 interface DepositStatus {
@@ -56,6 +57,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     error: null,
     lastAgentThinkMs: null,
     lastAgentThought: null,
+    forfeiting: false,
   });
   const [depositStatus, setDepositStatus] = useState<DepositStatus | null>(null);
   const connected = Boolean(userId);
@@ -103,6 +105,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         resultTxHash: data.resultTxHash,
         lastAgentThinkMs: data.lastAgentThinkMs,
         lastAgentThought: data.lastAgentThought ?? null,
+        forfeiting: false,
       }));
       stopPolling();
       // Win/lose sound
@@ -121,6 +124,8 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       contractMatchId: data.contractMatchId,
       resultTxHash: data.resultTxHash,
       lastAgentThinkMs: data.lastAgentThinkMs,
+      lastAgentThought: data.lastAgentThought ?? null,
+      forfeiting: false,
       error: null,
     }));
 
@@ -348,6 +353,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
 
   const forfeit = useCallback(async () => {
     if (!userId || !state.matchId) return;
+    setState((s) => ({ ...s, forfeiting: true, error: null }));
     try {
       const res = await authFetch('/api/game/forfeit', {
         method: 'POST',
@@ -356,7 +362,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       const data = await res.json();
 
       if (!res.ok) {
-        setState((s) => ({ ...s, error: data.error }));
+        setState((s) => ({ ...s, forfeiting: false, error: data.error }));
         setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
         return;
       }
@@ -366,9 +372,13 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         return;
       }
 
-      await fetchGameState();
+      const view = await fetchGameState();
+      if (!view) {
+        setState((s) => ({ ...s, forfeiting: false, error: 'Failed to update forfeited match' }));
+        setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
+      }
     } catch {
-      setState((s) => ({ ...s, error: 'Failed to forfeit' }));
+      setState((s) => ({ ...s, forfeiting: false, error: 'Failed to forfeit' }));
       setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
     }
   }, [userId, state.matchId, authFetch, applyGameStatePayload, fetchGameState]);
@@ -385,7 +395,8 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       points: null,
       error: null,
       lastAgentThinkMs: null,
-    lastAgentThought: null,
+      lastAgentThought: null,
+      forfeiting: false,
     });
     setDepositStatus(null);
   }, [stopPolling]);

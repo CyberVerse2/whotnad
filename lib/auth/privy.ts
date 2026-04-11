@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 
 const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 const privyAppSecret = process.env.PRIVY_APP_SECRET;
+const privyVerificationKey = process.env.PRIVY_VERIFICATION_KEY;
 
 if (!privyAppId || !privyAppSecret) {
   console.warn('Privy credentials not set — auth will not work');
@@ -17,9 +18,13 @@ export const privyClient = new PrivyClient(
 
 export async function verifyPrivyToken(authToken: string) {
   try {
-    const claims = await privyClient.verifyAuthToken(authToken);
+    const claims = await privyClient.verifyAuthToken(
+      authToken,
+      privyVerificationKey || ''
+    );
     return claims;
-  } catch {
+  } catch (error) {
+    console.warn('Privy token verification failed', error);
     return null;
   }
 }
