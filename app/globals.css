@@ -1,26 +1,235 @@
 @import "tailwindcss";
 
+/*
+ * Whotnad Design System — Light
+ * Monad purple accent, clean white, competitive
+ */
+
 :root {
+  /* ── Brand Colors (Monad purple — contrast-safe) ── */
+  --accent: #6350CC;
+  --accent-bright: #836EF9;
+  --accent-dim: #5243A8;
+
+  --gold-base: #7d5c07;
+  --gold-bright: #946b09;
+  --gold-dim: #5e4505;
+
+  /* ── Surfaces (clean white) ── */
+  --surface-0: #ffffff;
+  --surface-1: #f7f7f7;
+  --surface-2: #efefef;
+  --surface-3: #e0e0e0;
+
+  /* ── Text ── */
+  --text-primary: #1a1a1a;
+  --text-secondary: #555550;
+  --text-muted: #6a6860;
+
+  /* ── Semantic ── */
+  --danger: #c0392b;
+  --warning: #b8860b;
+  --success: #2e7d32;
+
+  /* ── Legacy aliases ── */
+  --green-base: var(--accent);
+  --green-bright: var(--accent-bright);
+  --green-dim: var(--accent-dim);
+
+  /* ── Typography (Rubik everywhere) ── */
+  --font-display: var(--font-rubik), system-ui, sans-serif;
+  --font-body: var(--font-rubik), system-ui, sans-serif;
+
+  /* ── Easing ── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* Tailwind compat */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a1a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-body);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Utility classes ── */
+.font-display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.text-gold { color: var(--gold-base); }
+.text-green { color: var(--accent-bright); }
+.text-accent { color: var(--accent); }
+.bg-surface-1 { background: var(--surface-1); }
+.bg-surface-2 { background: var(--surface-2); }
+.bg-surface-3 { background: var(--surface-3); }
+
+.felt-texture {
+  background: var(--surface-0);
+}
+
+/* ── Animations ── */
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes card-deal {
+  from { opacity: 0; transform: translateY(-20px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes card-play {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12) translateY(-8px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 80, 204, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(99, 80, 204, 0.15); }
+}
+
+@keyframes turn-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes win-pop {
+  0% { opacity: 0; transform: scale(0.5); }
+  60% { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ── Animation utilities ── */
+
+.animate-slide-up {
+  animation: slide-up 0.5s var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.5s var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s var(--ease-out-quart) forwards;
+  opacity: 0;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.animate-card-deal {
+  animation: card-deal 0.4s var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-turn-pulse {
+  animation: turn-pulse 1.5s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+.animate-shake {
+  animation: shake 0.4s var(--ease-out-quart);
+}
+
+.animate-win {
+  animation: win-pop 0.6s var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ── Button press feedback ── */
+button, [role="button"], a[style*="background"] {
+  transition: transform 0.1s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.1s;
+}
+
+button:active:not(:disabled), [role="button"]:active, a[style*="background"]:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,1 +1,23 @@
 @AGENTS.md
+
+## Design Context
+
+### Users
+Young Nigerian gamers (18-30), mobile-first, competitive. Grew up playing Whot with family and friends — it's a cultural staple. They're playing late at night, in transit, during breaks. The app should feel like a high-stakes game night with friends — fast, loud, confident. Many are crypto-curious or crypto-native.
+
+### Brand Personality
+**Three words**: Loud, competitive, Nigerian.
+Lagos energy — vibrant, unapologetic, alive. Not corporate polish, not Silicon Valley minimalism. This is a card game born from Nigerian culture, played for real money on-chain. It should feel like the intersection of a Lagos nightclub and a poker table.
+
+### Aesthetic Direction
+- **Visual tone**: Street-smart casino. Dark theme (late-night gaming context). Bold typography. Green & gold palette rooted in Nigerian identity and money/winning energy.
+- **References**: PokerStars/WSOP card game intensity, but with African cultural confidence instead of Western casino sleekness.
+- **Anti-references**: Generic Web3 dark-mode-with-neon. Cute/childish card games. Corporate dashboards. Anything that looks like "AI made this."
+- **Theme**: Dark — always. This is a nighttime, competitive, stakes-on-the-line environment.
+
+### Design Principles
+1. **Culture first** — The design should feel Nigerian, not generic. Green & gold palette, confident typography, energy that reflects Lagos street culture.
+2. **Stakes are real** — Every visual decision should remind you money is on the line. Sharp contrasts, dramatic type, tension in the layout.
+3. **Speed over decoration** — The interface serves the game. No visual clutter that slows down decision-making during a match.
+4. **Card table gravity** — The game board is sacred space. Dark, focused, everything draws your eye to the cards.
+5. **Win culture** — Winning should feel massive. Losing should sting. The emotional arc of a match matters.
