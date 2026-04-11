@@ -155,7 +155,9 @@ export default function PlayPage() {
         <div style={{
           width: 14,
           height: 14,
-          border: '2px solid var(--gold-base)',
+          borderRight: '2px solid var(--gold-base)',
+          borderBottom: '2px solid var(--gold-base)',
+          borderLeft: '2px solid var(--gold-base)',
           borderTop: '2px solid transparent',
           borderRadius: '50%',
         }} className="animate-spin" />
@@ -179,7 +181,9 @@ export default function PlayPage() {
         <div style={{
           width: 14,
           height: 14,
-          border: '2px solid var(--accent)',
+          borderRight: '2px solid var(--accent)',
+          borderBottom: '2px solid var(--accent)',
+          borderLeft: '2px solid var(--accent)',
           borderTop: '2px solid transparent',
           borderRadius: '50%',
         }} className="animate-spin" />
@@ -454,7 +458,9 @@ export default function PlayPage() {
         <div style={{
           width: 14,
           height: 14,
-          border: '2px solid var(--green-bright)',
+          borderRight: '2px solid var(--green-bright)',
+          borderBottom: '2px solid var(--green-bright)',
+          borderLeft: '2px solid var(--green-bright)',
           borderTop: '2px solid transparent',
           borderRadius: '50%',
         }} className="animate-spin" />

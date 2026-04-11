@@ -101,7 +101,9 @@ export default function LobbyPage() {
       }}>
         <div className="animate-spin" style={{
           width: 14, height: 14,
-          border: '2px solid var(--gold-base)',
+          borderRight: '2px solid var(--gold-base)',
+          borderBottom: '2px solid var(--gold-base)',
+          borderLeft: '2px solid var(--gold-base)',
           borderTop: '2px solid transparent',
           borderRadius: '50%',
         }} />
@@ -207,7 +209,9 @@ export default function LobbyPage() {
             <div className="animate-spin" style={{
               width: 16,
               height: 16,
-              border: '2px solid var(--gold-base)',
+              borderRight: '2px solid var(--gold-base)',
+              borderBottom: '2px solid var(--gold-base)',
+              borderLeft: '2px solid var(--gold-base)',
               borderTop: '2px solid transparent',
               borderRadius: '50%',
                 }} />
