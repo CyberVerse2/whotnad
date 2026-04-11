@@ -1,6 +1,35 @@
 import Link from 'next/link';
+import { getCurrentSeason, getLeaderboard } from '@/lib/seasons/manager';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { inArray } from 'drizzle-orm';
 
-export default function LeaderboardPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function LeaderboardPage() {
+  let season;
+  let entries: Awaited<ReturnType<typeof getLeaderboard>> = [];
+  let userMap: Record<string, { walletAddress: string; displayName: string | null }> = {};
+
+  try {
+    season = await getCurrentSeason();
+    entries = await getLeaderboard(season.id);
+
+    if (entries.length > 0) {
+      const userIds = entries.map((e) => e.userId);
+      const userRows = await db
+        .select({ id: users.id, walletAddress: users.walletAddress, displayName: users.displayName })
+        .from(users)
+        .where(inArray(users.id, userIds));
+
+      for (const u of userRows) {
+        userMap[u.id] = { walletAddress: u.walletAddress, displayName: u.displayName };
+      }
+    }
+  } catch {
+    // DB not available — show empty state
+  }
+
   return (
     <div className="felt-texture" style={{ minHeight: '100vh' }}>
       {/* Nav */}
@@ -69,26 +98,88 @@ export default function LeaderboardPage() {
           <span className="font-display" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.1em', textAlign: 'right' }}>W/L</span>
         </div>
 
-        {/* Empty state */}
-        <div className="animate-slide-up stagger-2" style={{
-          background: 'var(--surface-1)',
-          borderRadius: 6,
-          padding: '48px 24px',
-          textAlign: 'center',
-        }}>
-          <p className="font-display" style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            letterSpacing: '0.05em',
-            marginBottom: 8,
+        {entries.length === 0 ? (
+          <div className="animate-slide-up stagger-2" style={{
+            background: 'var(--surface-1)',
+            borderRadius: 6,
+            padding: '48px 24px',
+            textAlign: 'center',
           }}>
-            NO GAMES YET
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-            Be the first to play this season.
-          </p>
-        </div>
+            <p className="font-display" style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              letterSpacing: '0.05em',
+              marginBottom: 8,
+            }}>
+              NO GAMES YET
+            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+              Be the first to play this season.
+            </p>
+          </div>
+        ) : (
+          <div className="animate-slide-up stagger-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {entries.map((entry, i) => {
+              const user = userMap[entry.userId];
+              const addr = user?.walletAddress ?? '';
+              const label = user?.displayName || (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : 'Unknown');
+              const rank = i + 1;
+
+              return (
+                <div
+                  key={entry.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '40px 1fr 80px 80px',
+                    gap: 8,
+                    padding: '12px 12px',
+                    background: rank <= 3 ? 'var(--surface-1)' : 'transparent',
+                    borderRadius: 6,
+                  }}
+                >
+                  <span className="font-display" style={{
+                    fontSize: 14,
+                    fontWeight: 900,
+                    color: rank === 1 ? 'var(--gold-base)' : rank <= 3 ? 'var(--accent)' : 'var(--text-muted)',
+                  }}>
+                    {rank}
+                  </span>
+                  <span style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {addr ? (
+                      <Link href={`/profile/${addr}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {label}
+                      </Link>
+                    ) : label}
+                  </span>
+                  <span className="font-display" style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: 'var(--text-primary)',
+                    textAlign: 'right',
+                  }}>
+                    {entry.totalPoints}
+                  </span>
+                  <span style={{
+                    fontSize: 13,
+                    color: 'var(--text-secondary)',
+                    textAlign: 'right',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {entry.wins}/{entry.losses}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Badges */}
         <div className="animate-slide-up stagger-3" style={{ marginTop: 48 }}>

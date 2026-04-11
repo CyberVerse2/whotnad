@@ -15,11 +15,21 @@ export default function Home() {
           <div className="flex justify-center gap-3 mb-6"
             style={{ color: 'var(--text-muted)' }}>
             {SHAPES.map((s, i) => (
-              <span key={i} className="text-xl opacity-60">{s}</span>
+              <span
+                key={i}
+                className="text-xl animate-shape-float"
+                style={{
+                  display: 'inline-block',
+                  animationDelay: `${i * 0.3}s`,
+                  opacity: 0.6,
+                }}
+              >
+                {s}
+              </span>
             ))}
           </div>
 
-          <h1 className="font-display font-900 tracking-tight mb-6"
+          <h1 className="font-display font-black tracking-tight mb-6"
             style={{
               fontSize: 'clamp(3.5rem, 10vw, 7rem)',
               color: 'var(--text-primary)',
@@ -38,7 +48,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/lobby"
-              className="font-display font-700 text-lg px-10 py-4 rounded transition-all"
+              className="font-display font-bold text-lg px-10 py-4 rounded transition-all"
               style={{
                 background: 'var(--accent)',
                 color: '#fff',
@@ -68,7 +78,7 @@ export default function Home() {
 
         {/* Rules section */}
         <section id="rules" className="mt-24 w-full max-w-2xl pb-20">
-          <h2 className="font-display font-800 text-3xl mb-8 animate-slide-up stagger-3"
+          <h2 className="font-display font-extrabold text-3xl mb-8 animate-slide-up stagger-3"
             style={{ color: 'var(--text-primary)' }}>
             SPECIAL CARDS
           </h2>
@@ -100,11 +110,11 @@ export default function Home() {
 function StakeStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="text-center">
-      <p className="font-display text-[10px] font-600 tracking-widest mb-1"
+      <p className="font-display text-[10px] font-semibold tracking-widest mb-1"
         style={{ color: 'var(--text-muted)' }}>
         {label}
       </p>
-      <p className="font-display font-800 text-xl"
+      <p className="font-display font-extrabold text-xl"
         style={{ color: accent ? 'var(--gold-base)' : 'var(--text-primary)' }}>
         {value}
       </p>
@@ -129,13 +139,13 @@ function SpecialCard({
     <div className={`p-4 rounded transition-colors animate-slide-up stagger-${delay}`}
       style={{ background: 'var(--surface-1)' }}>
       <div className="flex items-baseline gap-2 mb-1">
-        <span className="font-display font-900 text-2xl"
+        <span className="font-display font-black text-2xl"
           style={{ color: 'var(--gold-base)' }}>
           {number}
         </span>
         <span className="text-sm opacity-40">{shape}</span>
       </div>
-      <p className="font-display font-700 text-xs tracking-wider"
+      <p className="font-display font-bold text-xs tracking-wider"
         style={{ color: 'var(--text-primary)' }}>
         {name}
       </p>

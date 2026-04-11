@@ -1,6 +1,6 @@
 # whotnad
 
-Multiplayer Whot on Monad with escrowed matches, AI opponents, match settlement, and profile/history flows.
+Multiplayer Whot on Monad with escrowed matches, s, match settlement, and profile/history flows.
 
 ## Getting Started
 

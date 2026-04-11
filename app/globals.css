@@ -157,6 +157,16 @@ body {
   50% { opacity: 0.6; }
 }
 
+@keyframes shape-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-6px) rotate(5deg); }
+  75% { transform: translateY(4px) rotate(-3deg); }
+}
+
+.animate-shape-float {
+  animation: shape-float 3s ease-in-out infinite;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

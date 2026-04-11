@@ -74,57 +74,58 @@ export async function getLeaderboard(seasonId: string, limit = 50) {
 }
 
 /**
- * Update season points for a match result.
+ * Update season points for a single player after a match.
+ * Agents are skipped — callers should resolve privy IDs to user UUIDs
+ * and only call this for real users.
  */
 export async function updateSeasonPoints(
   seasonId: string,
-  winnerId: string,
-  loserId: string,
-  winnerPoints: number,
-  loserPoints: number
+  userId: string,
+  points: number,
+  isWin: boolean
 ) {
-  // Winner: add points, increment wins, increment streak
-  await db
-    .insert(seasonPoints)
-    .values({
-      seasonId,
-      userId: winnerId,
-      totalPoints: winnerPoints,
-      wins: 1,
-      losses: 0,
-      currentStreak: 1,
-      maxStreak: 1,
-    })
-    .onConflictDoUpdate({
-      target: [seasonPoints.seasonId, seasonPoints.userId],
-      set: {
-        totalPoints: sql`${seasonPoints.totalPoints} + ${winnerPoints}`,
-        wins: sql`${seasonPoints.wins} + 1`,
-        currentStreak: sql`${seasonPoints.currentStreak} + 1`,
-        maxStreak: sql`GREATEST(${seasonPoints.maxStreak}, ${seasonPoints.currentStreak} + 1)`,
-      },
-    });
-
-  // Loser: add points, increment losses, reset streak
-  await db
-    .insert(seasonPoints)
-    .values({
-      seasonId,
-      userId: loserId,
-      totalPoints: loserPoints,
-      wins: 0,
-      losses: 1,
-      currentStreak: 0,
-      maxStreak: 0,
-    })
-    .onConflictDoUpdate({
-      target: [seasonPoints.seasonId, seasonPoints.userId],
-      set: {
-        totalPoints: sql`${seasonPoints.totalPoints} + ${loserPoints}`,
-        losses: sql`${seasonPoints.losses} + 1`,
-        currentStreak: sql`0`,
-      },
-    });
+  if (isWin) {
+    await db
+      .insert(seasonPoints)
+      .values({
+        seasonId,
+        userId,
+        totalPoints: points,
+        wins: 1,
+        losses: 0,
+        currentStreak: 1,
+        maxStreak: 1,
+      })
+      .onConflictDoUpdate({
+        target: [seasonPoints.seasonId, seasonPoints.userId],
+        set: {
+          totalPoints: sql`${seasonPoints.totalPoints} + ${points}`,
+          wins: sql`${seasonPoints.wins} + 1`,
+          currentStreak: sql`${seasonPoints.currentStreak} + 1`,
+          maxStreak: sql`GREATEST(${seasonPoints.maxStreak}, ${seasonPoints.currentStreak} + 1)`,
+        },
+      });
+  } else {
+    await db
+      .insert(seasonPoints)
+      .values({
+        seasonId,
+        userId,
+        totalPoints: points,
+        wins: 0,
+        losses: 1,
+        currentStreak: 0,
+        maxStreak: 0,
+      })
+      .onConflictDoUpdate({
+        target: [seasonPoints.seasonId, seasonPoints.userId],
+        set: {
+          totalPoints: sql`${seasonPoints.totalPoints} + ${points}`,
+          losses: sql`${seasonPoints.losses} + 1`,
+          currentStreak: sql`0`,
+        },
+      });
+  }
 }
 
 /**

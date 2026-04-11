@@ -6,13 +6,13 @@ import "./globals.css";
 const rubik = Rubik({
   variable: "--font-rubik",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
 });
 
 const nunito = Nunito({
   variable: "--font-nunito",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

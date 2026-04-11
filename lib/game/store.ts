@@ -20,6 +20,7 @@ import { logAgentAction, logAgentError } from '@/lib/ai/logger';
 import { db } from '@/lib/db';
 import { matchmakingQueue, matches, users } from '@/lib/db/schema';
 import { desc, eq, or, sql } from 'drizzle-orm';
+import { getCurrentSeason, updateSeasonPoints } from '@/lib/seasons/manager';
 
 type MatchRow = typeof matches.$inferSelect;
 
@@ -453,6 +454,21 @@ async function finalizeGame(game: ActiveGame, tx: DbExecutor): Promise<void> {
   await persistFinishedMatch(game, points, tx);
 
   try {
+    const season = await getCurrentSeason();
+    const winnerUuid = await getUserUuidByPrivyId(winnerId);
+    const loserUuid = await getUserUuidByPrivyId(loserId);
+
+    if (winnerUuid) {
+      await updateSeasonPoints(season.id, winnerUuid, points.winnerPoints, true);
+    }
+    if (loserUuid) {
+      await updateSeasonPoints(season.id, loserUuid, points.loserPoints, false);
+    }
+  } catch (err) {
+    console.error(`[Season] Failed to update season points for ${game.state.matchId}:`, err);
+  }
+
+  try {
     await submitOnChain(game);
   } catch (err) {
     console.error(`[Chain] Failed to submit result for ${game.state.matchId}:`, err);
@@ -722,6 +738,18 @@ async function getWalletAddressForPrivyId(privyId: string): Promise<string | nul
 
   if (!user?.walletAddress) return null;
   return user.walletAddress;
+}
+
+async function getUserUuidByPrivyId(privyId: string): Promise<string | null> {
+  if (isAgent(privyId)) return null;
+
+  const [user] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.privyId, privyId))
+    .limit(1);
+
+  return user?.id ?? null;
 }
 
 type DbExecutor = typeof db;
