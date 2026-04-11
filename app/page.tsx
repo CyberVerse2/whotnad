@@ -30,8 +30,8 @@ export default function Home() {
             <span style={{ color: 'var(--gold-base)' }}>WIN MON</span>
           </h1>
 
-          <p className="text-lg max-w-lg mx-auto mb-10 leading-relaxed"
-            style={{ color: 'var(--text-secondary)' }}>
+          <p className="font-display text-lg max-w-lg mx-auto mb-10 leading-relaxed"
+            style={{ color: 'var(--text-secondary)', textTransform: 'none', lineHeight: 1.6, letterSpacing: '0.01em' }}>
             Nigeria&apos;s card game, played for real stakes on Monad.
             1v1 matches. Weekly seasons. AI opponents that play to win.
           </p>
@@ -44,11 +44,11 @@ export default function Home() {
                 color: '#fff',
                 letterSpacing: '0.05em',
               }}>
-              FIND A MATCH
+              PLAY GOJO
             </Link>
             <Link href="#rules"
-              className="text-sm font-medium px-6 py-4 transition-colors"
-              style={{ color: 'var(--text-secondary)' }}>
+              className="font-display text-sm font-medium px-6 py-4 transition-colors"
+              style={{ color: 'var(--text-secondary)', textTransform: 'none' }}>
               How to play
             </Link>
           </div>
@@ -81,16 +81,16 @@ export default function Home() {
             <SpecialCard number={20} name="WHOT!" effect="Wild — name a shape" shape="🌟" delay={8} />
           </div>
 
-          <p className="mt-6 text-sm leading-relaxed max-w-md"
-            style={{ color: 'var(--text-muted)' }}>
+          <p className="font-display mt-6 text-sm leading-relaxed max-w-md"
+            style={{ color: 'var(--text-muted)', textTransform: 'none', lineHeight: 1.6, letterSpacing: '0.01em' }}>
             Match cards by shape or number. First to empty your hand wins.
             Last Card rule: declare with 2 cards left, or draw 2 as penalty.
           </p>
         </section>
       </main>
 
-      <footer className="text-center py-6 text-xs"
-        style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--surface-2)' }}>
+      <footer className="font-display text-center py-6 text-xs"
+        style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--surface-2)', textTransform: 'none', letterSpacing: '0.02em' }}>
         Verifiable on Monad. Randomness by Drand. Every game on-chain.
       </footer>
     </div>

@@ -227,14 +227,27 @@ export function Board({
           alignItems: 'center',
           marginBottom: 12,
         }}>
-          <span className="font-display" style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.06em',
-          }}>
-            OPPONENT — {gameState.opponentCardCount} CARDS
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img
+              src="/gojo.jpg"
+              alt="Satoru Gojo"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid var(--accent)',
+              }}
+            />
+            <span className="font-display" style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              letterSpacing: '0.06em',
+            }}>
+              SATORU GOJO — {gameState.opponentCardCount} CARDS
+            </span>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
             {opponentJustPlayed && lastAgentThought && (
               <span className="animate-slide-down" style={{
@@ -447,7 +460,7 @@ export function Board({
             }}>
               {gameState.isMyTurn
                 ? `YOU MUST DRAW ${gameState.pendingDraws} OR PLAY A ${gameState.pendingDrawType}`
-                : `OPPONENT OWES +${gameState.pendingDraws} CARDS`
+                : `GOJO OWES +${gameState.pendingDraws} CARDS`
               }
             </p>
           )}

@@ -2,6 +2,7 @@
 
 import { usePrivy } from '@privy-io/react-auth';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function Navbar() {
   const { user, login, logout, authenticated, ready } = usePrivy();
@@ -22,14 +23,35 @@ export function Navbar() {
 
         {ready && authenticated && walletAddress ? (
           <>
-            <Link href={`/profile/${user?.id}`}
+            <Link
+              href={`/profile/${user?.id}`}
               style={{
-                fontSize: 12,
-                color: 'var(--text-muted)',
-                fontFamily: 'monospace',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
                 textDecoration: 'none',
+                padding: '4px 10px',
+                borderRadius: 6,
+                background: 'var(--surface-1)',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface-1)')}
+            >
+              <Image
+                src="/gojo.jpg"
+                alt="Profile"
+                width={24}
+                height={24}
+                style={{ borderRadius: '50%', objectFit: 'cover' }}
+              />
+              <span style={{
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                fontFamily: 'monospace',
               }}>
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </span>
             </Link>
             <button
               onClick={logout}

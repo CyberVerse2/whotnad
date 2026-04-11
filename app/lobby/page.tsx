@@ -110,7 +110,7 @@ export default function LobbyPage() {
         <span className="font-display" style={{
           fontSize: 14, fontWeight: 700, color: 'var(--gold-base)', letterSpacing: '0.08em',
         }}>
-          MATCH FOUND
+          GOJO ACCEPTED YOUR CHALLENGE
         </span>
       </div>
     );
@@ -173,29 +173,186 @@ export default function LobbyPage() {
         </div>
       )}
 
-      {/* Actions */}
+      {/* Opponent profile card */}
       {phase === 'idle' && (
-        <button
-          onClick={joinQueue}
-          disabled={!connected}
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 900,
-            fontSize: 20,
-            letterSpacing: '0.06em',
-            background: connected ? 'var(--accent)' : 'var(--surface-3)',
-            color: connected ? '#fff' : 'var(--text-muted)',
-            padding: '20px 48px',
-            borderRadius: 6,
-            border: 'none',
-            cursor: connected ? 'pointer' : 'not-allowed',
-            transition: 'transform 0.15s',
-          }}
-          onMouseEnter={(e) => connected && (e.currentTarget.style.transform = 'scale(1.02)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-        >
-          FIND MATCH
-        </button>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 24,
+          width: '100%',
+          maxWidth: 340,
+        }}>
+          <div style={{
+            background: 'var(--surface-1)',
+            borderRadius: 12,
+            padding: '28px 24px 20px',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 16,
+            border: '1px solid var(--surface-2)',
+          }}>
+            {/* Avatar + name */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <img
+                src="/gojo.jpg"
+                alt="Satoru Gojo"
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '3px solid var(--gold-base)',
+                  boxShadow: '0 0 24px oklch(0.6 0.15 85 / 0.3)',
+                }}
+              />
+              <span className="font-display" style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: 'var(--gold-base)',
+                letterSpacing: '0.12em',
+              }}>
+                YOUR OPPONENT
+              </span>
+              <span className="font-display" style={{
+                fontSize: 22,
+                fontWeight: 900,
+                color: 'var(--text-primary)',
+                letterSpacing: '0.04em',
+              }}>
+                SATORU GOJO
+              </span>
+            </div>
+
+            {/* Stats row */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 8,
+              width: '100%',
+            }}>
+              <div style={{
+                background: 'var(--surface-2)',
+                borderRadius: 8,
+                padding: '12px 8px',
+                textAlign: 'center',
+              }}>
+                <p className="font-display" style={{
+                  fontSize: 8,
+                  fontWeight: 600,
+                  letterSpacing: '0.12em',
+                  color: 'var(--text-muted)',
+                  marginBottom: 4,
+                }}>
+                  WINS
+                </p>
+                <p className="font-display" style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: 'var(--green-bright)',
+                }}>
+                  847
+                </p>
+              </div>
+              <div style={{
+                background: 'var(--surface-2)',
+                borderRadius: 8,
+                padding: '12px 8px',
+                textAlign: 'center',
+              }}>
+                <p className="font-display" style={{
+                  fontSize: 8,
+                  fontWeight: 600,
+                  letterSpacing: '0.12em',
+                  color: 'var(--text-muted)',
+                  marginBottom: 4,
+                }}>
+                  WIN RATE
+                </p>
+                <p className="font-display" style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: 'var(--gold-base)',
+                }}>
+                  73%
+                </p>
+              </div>
+              <div style={{
+                background: 'var(--surface-2)',
+                borderRadius: 8,
+                padding: '12px 8px',
+                textAlign: 'center',
+              }}>
+                <p className="font-display" style={{
+                  fontSize: 8,
+                  fontWeight: 600,
+                  letterSpacing: '0.12em',
+                  color: 'var(--text-muted)',
+                  marginBottom: 4,
+                }}>
+                  STREAK
+                </p>
+                <p className="font-display" style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: 'var(--danger)',
+                }}>
+                  12
+                </p>
+              </div>
+            </div>
+
+            {/* Difficulty tag */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'oklch(0.25 0.06 25)',
+              borderRadius: 20,
+              padding: '6px 14px',
+            }}>
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: 'var(--danger)',
+              }} />
+              <span className="font-display" style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: '0.1em',
+                color: 'var(--danger)',
+              }}>
+                HARD DIFFICULTY
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={joinQueue}
+            disabled={!connected}
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 900,
+              fontSize: 20,
+              letterSpacing: '0.06em',
+              background: connected ? 'var(--accent)' : 'var(--surface-3)',
+              color: connected ? '#fff' : 'var(--text-muted)',
+              padding: '20px 48px',
+              borderRadius: 6,
+              border: 'none',
+              cursor: connected ? 'pointer' : 'not-allowed',
+              transition: 'transform 0.15s',
+              width: '100%',
+            }}
+            onMouseEnter={(e) => connected && (e.currentTarget.style.transform = 'scale(1.02)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            PLAY GOJO
+          </button>
+        </div>
       )}
 
       {phase === 'queued' && (
@@ -221,7 +378,7 @@ export default function LobbyPage() {
               color: 'var(--text-primary)',
               letterSpacing: '0.05em',
             }}>
-              SEARCHING...
+              GOJO IS GETTING READY...
             </span>
           </div>
           <button
