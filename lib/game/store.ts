@@ -468,11 +468,10 @@ async function finalizeGame(game: ActiveGame, tx: DbExecutor): Promise<void> {
     console.error(`[Season] Failed to update season points for ${game.state.matchId}:`, err);
   }
 
-  try {
-    await submitOnChain(game);
-  } catch (err) {
+  // Fire-and-forget — don't block the response waiting for chain confirmation
+  submitOnChain(game).catch((err) => {
     console.error(`[Chain] Failed to submit result for ${game.state.matchId}:`, err);
-  }
+  });
 }
 
 async function persistActiveGameState(game: ActiveGame, tx: DbExecutor): Promise<void> {
