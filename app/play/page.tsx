@@ -507,6 +507,7 @@ export default function PlayPage() {
         onDraw={drawCard}
         onDeclareLastCard={declareLastCard}
         onLeave={handleLeave}
+        onForfeit={forfeit}
         lastAgentThinkMs={lastAgentThinkMs}
         log={log}
       />
