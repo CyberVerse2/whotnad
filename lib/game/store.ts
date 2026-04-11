@@ -31,6 +31,7 @@ interface ActiveGame {
   points: PointsSummary | null;
   resultTxHash: string | null;
   lastAgentThinkMs: number | null;
+  lastAgentThought: string | null;
 }
 
 export async function joinQueue(userId: string): Promise<{
@@ -215,6 +216,11 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
         ? `Drew from market (pending: ${state.pendingDraws})`
         : 'Declared Last Card';
 
+    // Build human-readable thought for the UI
+    const hand = state.hands[agentId];
+    const topCard = state.discardPile[state.discardPile.length - 1];
+    game.lastAgentThought = buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
+
     switch (move.action) {
       case 'declare_last_card':
         game.state = applyTurn(state, agentId, { type: 'declare_last_card' });
@@ -240,10 +246,65 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
     const errMsg = err instanceof Error ? err.message : String(err);
     logAgentError(matchId, agentId, `Move "${move.action}" invalid: ${errMsg} — falling back to draw`);
     console.warn(`[Agent] Move "${move.action}" invalid, falling back to draw:`, errMsg);
+    game.lastAgentThought = 'Hmm, that didn\'t work. Drawing a card instead.';
     game.state = applyTurn(state, agentId, { type: 'draw' });
     logAgentAction(matchId, agentId, 'draw (fallback)', true, 'Fallback after invalid move');
     await persistTurnOutcome(game, tx);
   }
+}
+
+function buildAgentThought(
+  move: { action: string; cardId?: number; chosenShape?: Shape },
+  cardPlayed: { shape: string; number: number } | null,
+  topCard: { shape: string; number: number },
+  hand: { shape: string; number: number }[],
+  state: GameState
+): string {
+  const cardName = (c: { shape: string; number: number }) =>
+    c.shape === 'whot' ? 'Whot!' : `${c.shape} ${c.number}`;
+
+  if (move.action === 'declare_last_card') {
+    return `Down to 2 cards — declaring Last Card before playing.`;
+  }
+
+  if (move.action === 'draw') {
+    if (state.pendingDraws > 0) {
+      return `No ${state.pendingDrawType} to stack. Taking the ${state.pendingDraws}-card penalty.`;
+    }
+    return `No matching cards for ${cardName(topCard)}. Drawing from market.`;
+  }
+
+  if (move.action === 'play' && cardPlayed) {
+    const parts: string[] = [];
+
+    // What was played
+    if (cardPlayed.shape === 'whot') {
+      parts.push(`Played Whot! and called ${move.chosenShape}.`);
+    } else {
+      const matchReason = cardPlayed.shape === topCard.shape
+        ? `matches ${topCard.shape}`
+        : `matches number ${cardPlayed.number}`;
+      parts.push(`Played ${cardName(cardPlayed)} (${matchReason}).`);
+    }
+
+    // Why — special card effects
+    if (cardPlayed.number === 1 || cardPlayed.number === 8) {
+      parts.push('Skipping your turn.');
+    } else if (cardPlayed.number === 2) {
+      parts.push('Pick Two — you draw 2 or stack another 2.');
+    } else if (cardPlayed.number === 14) {
+      parts.push('General Market — you draw 1.');
+    }
+
+    // Hand size context
+    if (hand.length <= 3) {
+      parts.push(`${hand.length - 1} card${hand.length - 1 === 1 ? '' : 's'} left.`);
+    }
+
+    return parts.join(' ');
+  }
+
+  return 'Making a move...';
 }
 
 function buildAgentView(state: GameState, agentId: string): PlayerGameView {
@@ -584,6 +645,7 @@ function toActiveGame(row: MatchRow): ActiveGame | null {
     points: buildPointsSummary(row),
     resultTxHash: row.resultTxHash ?? null,
     lastAgentThinkMs: null,
+    lastAgentThought: null,
   };
 }
 
@@ -612,6 +674,7 @@ function buildGameStateResponse(game: ActiveGame, userId: string) {
     contractMatchId: game.contractMatchId,
     resultTxHash: game.resultTxHash,
     lastAgentThinkMs: game.lastAgentThinkMs,
+    lastAgentThought: game.lastAgentThought,
   };
 }
 

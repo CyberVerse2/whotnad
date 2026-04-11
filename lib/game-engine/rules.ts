@@ -10,7 +10,7 @@ export function isValidPlay(
   playedCard: Card,
   activeShape: Shape | null,
   pendingDraws: number,
-  pendingDrawType: 2 | 5 | null
+  pendingDrawType: 2 | null
 ): boolean {
   // During pending draws, can only stack same type
   if (pendingDraws > 0 && pendingDrawType !== null) {
@@ -42,7 +42,7 @@ export function getPlayableCards(
   topCard: Card,
   activeShape: Shape | null,
   pendingDraws: number,
-  pendingDrawType: 2 | 5 | null
+  pendingDrawType: 2 | null
 ): Card[] {
   return hand.filter((card) =>
     isValidPlay(topCard, card, activeShape, pendingDraws, pendingDrawType)

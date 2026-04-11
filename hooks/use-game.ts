@@ -21,6 +21,7 @@ interface GameHookState {
   points: PointsSummary | null;
   error: string | null;
   lastAgentThinkMs: number | null;
+  lastAgentThought: string | null;
 }
 
 interface DepositStatus {
@@ -38,6 +39,7 @@ interface GameStatePayload {
   contractMatchId: string | null;
   resultTxHash: string | null;
   lastAgentThinkMs: number | null;
+  lastAgentThought: string | null;
 }
 
 export function useGame(userId: string | null, initialMatchId?: string | null) {
@@ -53,6 +55,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     points: null,
     error: null,
     lastAgentThinkMs: null,
+    lastAgentThought: null,
   });
   const [depositStatus, setDepositStatus] = useState<DepositStatus | null>(null);
   const connected = Boolean(userId);
@@ -99,6 +102,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         contractMatchId: data.contractMatchId,
         resultTxHash: data.resultTxHash,
         lastAgentThinkMs: data.lastAgentThinkMs,
+        lastAgentThought: data.lastAgentThought ?? null,
       }));
       stopPolling();
       // Win/lose sound
@@ -349,18 +353,25 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         method: 'POST',
         body: JSON.stringify({ matchId: state.matchId }),
       });
-      if (res.ok) {
-        await fetchGameState();
-      } else {
-        const data = await res.json();
+      const data = await res.json();
+
+      if (!res.ok) {
         setState((s) => ({ ...s, error: data.error }));
         setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
+        return;
       }
+
+      if ('view' in data) {
+        applyGameStatePayload(data as GameStatePayload);
+        return;
+      }
+
+      await fetchGameState();
     } catch {
       setState((s) => ({ ...s, error: 'Failed to forfeit' }));
       setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
     }
-  }, [userId, state.matchId, authFetch, fetchGameState]);
+  }, [userId, state.matchId, authFetch, applyGameStatePayload, fetchGameState]);
 
   const resetGame = useCallback(() => {
     stopPolling();
@@ -374,6 +385,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       points: null,
       error: null,
       lastAgentThinkMs: null,
+    lastAgentThought: null,
     });
     setDepositStatus(null);
   }, [stopPolling]);

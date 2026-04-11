@@ -29,6 +29,7 @@ interface BoardProps {
   onLeave: () => void;
   onForfeit: () => void;
   lastAgentThinkMs: number | null;
+  lastAgentThought: string | null;
   log: Array<{ turn: number; playerId: string; action: { type: string; cardId?: number; chosenShape?: string } }>;
 }
 
@@ -43,6 +44,7 @@ export function Board({
   onLeave,
   onForfeit,
   lastAgentThinkMs,
+  lastAgentThought,
 }: BoardProps) {
   const [pendingWhotCardId, setPendingWhotCardId] = useState<number | null>(null);
   const [opponentJustPlayed, setOpponentJustPlayed] = useState(false);
@@ -118,7 +120,7 @@ export function Board({
       }
       soundCardPlay();
       // Play pick stack sound for special draw cards
-      if (card.number === 2 || card.number === 5) {
+      if (card.number === 2) {
         setTimeout(() => soundPickStack(), 100);
       }
       onPlayCard(cardId);
@@ -231,19 +233,18 @@ export function Board({
           }}>
             OPPONENT — {gameState.opponentCardCount} CARDS
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {opponentJustPlayed && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            {opponentJustPlayed && lastAgentThought && (
               <span className="animate-slide-down" style={{
                 fontSize: 11,
-                fontFamily: 'var(--font-display)',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                color: '#fff',
-                background: 'var(--accent)',
-                padding: '3px 10px',
-                borderRadius: 4,
+                color: 'var(--accent)',
+                fontStyle: 'italic',
+                maxWidth: 280,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}>
-                OPPONENT PLAYED!
+                {lastAgentThought}
               </span>
             )}
             {!gameState.isMyTurn && gameState.status === 'active' && !opponentJustPlayed && (

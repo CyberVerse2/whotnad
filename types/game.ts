@@ -24,7 +24,7 @@ export interface GameState {
   currentPlayerIndex: number;
   activeShape: Shape | null; // set by Whot card
   pendingDraws: number; // stacked Pick Two/Three
-  pendingDrawType: 2 | 5 | null; // which card caused pending draws
+  pendingDrawType: 2 | null; // which card caused pending draws
   lastCardDeclared: Record<string, boolean>;
   turnCount: number;
   status: GameStatus;

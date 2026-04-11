@@ -59,6 +59,7 @@ function PlayPageContent() {
     refreshDepositStatus,
     log,
     lastAgentThinkMs,
+    lastAgentThought,
     playCard,
     drawCard,
     declareLastCard,
@@ -449,6 +450,7 @@ function PlayPageContent() {
         onLeave={handleLeave}
         onForfeit={forfeit}
         lastAgentThinkMs={lastAgentThinkMs}
+        lastAgentThought={lastAgentThought}
         log={log}
       />
     </>

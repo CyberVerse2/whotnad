@@ -7,7 +7,6 @@ import type { Card, GameState, Shape } from '@/types/game';
  * Special cards:
  *  1  → Hold On: skip opponent's turn
  *  2  → Pick Two: opponent draws 2 (stackable)
- *  5  → Pick Three: opponent draws 3 (stackable)
  *  8  → Suspension: skip opponent's turn
  * 14  → General Market: opponent draws 1
  * 20  → Whot!: wild card, caller names next shape
@@ -27,11 +26,6 @@ export function applyCardEffect(
     case 2: // Pick Two — stackable
       next.pendingDraws += 2;
       next.pendingDrawType = 2;
-      break;
-
-    case 5: // Pick Three — stackable
-      next.pendingDraws += 3;
-      next.pendingDrawType = 5;
       break;
 
     case 8: // Suspension — skip opponent

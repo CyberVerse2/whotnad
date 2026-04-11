@@ -42,7 +42,7 @@ export function getHandValue(hand: Card[]): number {
 }
 
 export function isSpecialCard(card: Card): boolean {
-  return [1, 2, 5, 8, 14, 20].includes(card.number);
+  return [1, 2, 8, 14, 20].includes(card.number);
 }
 
 export function getCardLabel(card: Card): string {

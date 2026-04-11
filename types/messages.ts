@@ -33,7 +33,7 @@ export interface PlayerGameView {
   deckSize: number;
   activeShape: Shape | null;
   pendingDraws: number;
-  pendingDrawType: 2 | 5 | null;
+  pendingDrawType: 2 | null;
   currentPlayerId: string;
   isMyTurn: boolean;
   lastCardDeclared: boolean;

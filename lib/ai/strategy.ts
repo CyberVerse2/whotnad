@@ -13,7 +13,6 @@ export function buildSystemPrompt(): string {
 - Special cards:
   - 1 (Hold On): Skip opponent's turn
   - 2 (Pick Two): Opponent draws 2 cards. Stackable — if opponent has a 2, they can play it to pass +4 to you.
-  - 5 (Pick Three): Opponent draws 3 cards. Stackable similarly.
   - 8 (Suspension): Skip opponent's turn
   - 14 (General Market): Opponent draws 1 card
 - First player to empty their hand wins.
@@ -22,7 +21,7 @@ export function buildSystemPrompt(): string {
 ## Strategy Tips
 - Save Whot cards (20) for critical moments — they're your most versatile cards.
 - Hold skip cards (1, 8) to disrupt opponent when they're close to winning.
-- Stack Pick Twos and Pick Threes when possible for maximum damage.
+- Stack Pick Twos when possible for maximum damage.
 - When opponent has few cards, play aggressively to force them to draw.
 - When you have many cards of one shape, play that shape to create runs.
 - Always declare Last Card when you have 2 cards.
@@ -72,7 +71,7 @@ Valid cardId values: ${state.myHand.map((c) => c.id).join(', ')}`;
       (c) => c.number === state.pendingDrawType
     );
     if (stackable.length > 0) {
-      prompt += `\n\nI can stack a ${state.pendingDrawType === 2 ? 'Pick Two' : 'Pick Three'} to pass the penalty, or draw ${state.pendingDraws} cards.`;
+      prompt += `\n\nI can stack a Pick Two to pass the penalty, or draw ${state.pendingDraws} cards.`;
     } else {
       prompt += `\n\nI have no cards to stack. I must draw ${state.pendingDraws} cards.`;
     }

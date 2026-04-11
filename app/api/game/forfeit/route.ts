@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { forfeitGame } from '@/lib/game/store';
+import { forfeitGame, getGameState } from '@/lib/game/store';
 import { verifyRequest } from '@/lib/auth/verify-request';
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    const gameState = await getGameState(matchId, privyUserId);
+    if (!gameState) {
+      return NextResponse.json({ error: 'Failed to load updated game state' }, { status: 500 });
+    }
+
+    return NextResponse.json(gameState);
   } catch (error) {
     console.error('Forfeit failed:', error);
     return NextResponse.json({ error: 'Failed to forfeit' }, { status: 500 });
