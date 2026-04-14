@@ -3,24 +3,19 @@ import type { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { matches, users } from '@/lib/db/schema';
 import { eq, or, desc } from 'drizzle-orm';
-import { verifyPrivyToken } from '@/lib/auth/privy';
+import { verifyRequest } from '@/lib/auth/verify-request';
 
 export async function GET(request: NextRequest) {
-  const token = request.headers.get('x-privy-token');
-  if (!token) {
+  const userId = await verifyRequest(request);
+  if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const claims = await verifyPrivyToken(token);
-  if (!claims) {
-    return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
   }
 
   // Get user
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.privyId, claims.userId))
+    .where(eq(users.privyId, userId))
     .limit(1);
 
   if (!user) {

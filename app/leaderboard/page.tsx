@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function LeaderboardPage() {
   let season;
   let entries: Awaited<ReturnType<typeof getLeaderboard>> = [];
-  let userMap: Record<string, { walletAddress: string; displayName: string | null }> = {};
+  let userMap: Record<string, { displayName: string | null }> = {};
 
   try {
     season = await getCurrentSeason();
@@ -18,12 +18,12 @@ export default async function LeaderboardPage() {
     if (entries.length > 0) {
       const userIds = entries.map((e) => e.userId);
       const userRows = await db
-        .select({ id: users.id, walletAddress: users.walletAddress, displayName: users.displayName })
+        .select({ id: users.id, displayName: users.displayName })
         .from(users)
         .where(inArray(users.id, userIds));
 
       for (const u of userRows) {
-        userMap[u.id] = { walletAddress: u.walletAddress, displayName: u.displayName };
+        userMap[u.id] = { displayName: u.displayName };
       }
     }
   } catch {
@@ -122,8 +122,7 @@ export default async function LeaderboardPage() {
           <div className="animate-slide-up stagger-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {entries.map((entry, i) => {
               const user = userMap[entry.userId];
-              const addr = user?.walletAddress ?? '';
-              const label = user?.displayName || (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : 'Unknown');
+              const label = user?.displayName || 'Player';
               const rank = i + 1;
 
               return (
@@ -153,11 +152,7 @@ export default async function LeaderboardPage() {
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}>
-                    {addr ? (
-                      <Link href={`/profile/${addr}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                        {label}
-                      </Link>
-                    ) : label}
+                    {label}
                   </span>
                   <span className="font-display" style={{
                     fontSize: 14,

@@ -1,20 +1,7 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createPublicClient, createWalletClient, custom, http } from 'viem';
-import { monadTestnet } from '@/lib/chain/client';
-
-const TOURNAMENT_POOL_ABI = [
-  {
-    name: 'claim',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'matchId', type: 'bytes32' }],
-    outputs: [],
-  },
-] as const;
 
 interface MatchRecord {
   id: string;
@@ -22,9 +9,6 @@ interface MatchRecord {
   player2Id: string;
   winnerId: string | null;
   status: string;
-  contractMatchId: string | null;
-  resultTxHash: string | null;
-  claimed: boolean;
   turnsTaken: number | null;
   winnerPoints: number | null;
   loserPoints: number | null;
@@ -32,35 +16,26 @@ interface MatchRecord {
 }
 
 export default function ProfilePage() {
-  const { user, authenticated, ready, getAccessToken } = usePrivy();
-  const { wallets } = useWallets();
   const [matches, setMatches] = useState<MatchRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [claimingMatch, setClaimingMatch] = useState<string | null>(null);
-  const [claimedMatches, setClaimedMatches] = useState<Set<string>>(new Set());
-  const [claimError, setClaimError] = useState<string | null>(null);
-
-  const userId = user?.id ?? null;
-  const walletAddress = user?.wallet?.address;
+  const [userId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('whot-user-id');
+    }
+    return null;
+  });
 
   useEffect(() => {
-    if (!authenticated || !userId) return;
+    if (!userId) return;
 
     async function fetchMatches() {
       try {
-        const token = await getAccessToken();
         const res = await fetch('/api/game/history', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${userId}` },
         });
         if (res.ok) {
           const data = await res.json();
           setMatches(data.matches);
-          // Track already-claimed matches
-          const claimed = new Set<string>();
-          for (const m of data.matches) {
-            if (m.claimed) claimed.add(m.id);
-          }
-          setClaimedMatches(claimed);
         }
       } catch {
         // ignore
@@ -70,92 +45,15 @@ export default function ProfilePage() {
     }
 
     fetchMatches();
-  }, [authenticated, userId, getAccessToken]);
+  }, [userId]);
 
-  const handleClaim = useCallback(async (contractMatchId: string, matchId: string) => {
-    const contractAddress = process.env.NEXT_PUBLIC_TOURNAMENT_POOL_ADDRESS;
-    if (!contractAddress) {
-      alert('Contract address not configured');
-      return;
-    }
-
-    const wallet = wallets[0];
-    if (!wallet) {
-      alert('No wallet connected');
-      return;
-    }
-
-    setClaimingMatch(matchId);
-    setClaimError(null);
-
-    try {
-      await wallet.switchChain(10143);
-
-      const provider = await wallet.getEthereumProvider();
-      const walletClient = createWalletClient({
-        chain: monadTestnet,
-        transport: custom(provider),
-      });
-      const publicClient = createPublicClient({
-        chain: monadTestnet,
-        transport: http(),
-      });
-
-      const [account] = await walletClient.getAddresses();
-
-      const txHash = await walletClient.writeContract({
-        address: contractAddress as `0x${string}`,
-        abi: TOURNAMENT_POOL_ABI,
-        functionName: 'claim',
-        args: [contractMatchId as `0x${string}`],
-        account,
-      });
-
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
-
-      const token = await getAccessToken();
-      const confirmRes = await fetch('/api/game/claim', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ matchId }),
-      });
-
-      if (!confirmRes.ok) {
-        const data = await confirmRes.json().catch(() => ({ error: 'Failed to persist claim' }));
-        throw new Error(data.error ?? 'Failed to persist claim');
-      }
-
-      setClaimedMatches((prev) => new Set([...prev, matchId]));
-    } catch (err) {
-      console.error('Claim failed:', err);
-      setClaimError(err instanceof Error ? err.message : 'Claim failed');
-    } finally {
-      setClaimingMatch(null);
-    }
-  }, [getAccessToken, wallets]);
-
-  if (!ready) {
-    return (
-      <div className="felt-texture" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh',
-      }}>
-        <span className="font-display" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
-          LOADING...
-        </span>
-      </div>
-    );
-  }
-
-  if (!authenticated) {
+  if (!userId) {
     return (
       <div className="felt-texture" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh',
       }}>
         <Link href="/lobby" style={{ color: 'var(--green-bright)', textDecoration: 'none' }}>
-          Connect wallet to view profile
+          Play a game to create your profile
         </Link>
       </div>
     );
@@ -199,10 +97,7 @@ export default function ProfilePage() {
             PROFILE
           </h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-            {walletAddress
-              ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-              : userId?.slice(0, 16)
-            }
+            {userId?.slice(0, 16)}
           </p>
         </div>
 
@@ -221,20 +116,6 @@ export default function ProfilePage() {
           }}>
             MATCH HISTORY
           </h2>
-
-          {claimError && (
-            <div style={{
-              background: 'oklch(0.30 0.08 25)',
-              border: '1px solid var(--danger)',
-              color: 'oklch(0.85 0.06 25)',
-              padding: '10px 12px',
-              borderRadius: 6,
-              fontSize: 12,
-              marginBottom: 12,
-            }}>
-              {claimError}
-            </div>
-          )}
 
           {loading ? (
             <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading...</p>
@@ -255,10 +136,6 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {finishedMatches.map((match) => {
                 const won = match.winnerId === userId;
-                const hasResult = !!match.resultTxHash;
-                const isClaimed = claimedMatches.has(match.id);
-                const canClaim = won && hasResult && !isClaimed;
-                const claiming = claimingMatch === match.id;
 
                 return (
                   <div key={match.id} style={{
@@ -284,45 +161,6 @@ export default function ProfilePage() {
                           +{won ? match.winnerPoints ?? 0 : match.loserPoints ?? 0} pts
                         </p>
                       </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {match.resultTxHash && (
-                        <a
-                          href={`https://monad-testnet.socialscan.io/tx/${match.resultTxHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 11, color: 'var(--text-muted)', textDecoration: 'none' }}
-                        >
-                          tx
-                        </a>
-                      )}
-
-                      {canClaim && match.contractMatchId && (
-                        <button
-                          onClick={() => handleClaim(match.contractMatchId!, match.id)}
-                          disabled={claiming}
-                          style={{
-                            fontFamily: 'var(--font-display)', fontWeight: 800,
-                            fontSize: 11, letterSpacing: '0.06em',
-                            background: 'var(--gold-base)', color: 'oklch(0.15 0.02 85)',
-                            padding: '6px 14px', borderRadius: 4, border: 'none',
-                            cursor: claiming ? 'wait' : 'pointer',
-                            opacity: claiming ? 0.6 : 1,
-                          }}
-                        >
-                          {claiming ? 'CLAIMING...' : 'CLAIM 1.8 MON'}
-                        </button>
-                      )}
-
-                      {isClaimed && (
-                        <span className="font-display" style={{
-                          fontSize: 10, fontWeight: 700, color: 'var(--green-bright)',
-                          letterSpacing: '0.06em',
-                        }}>
-                          CLAIMED
-                        </span>
-                      )}
                     </div>
                   </div>
                 );

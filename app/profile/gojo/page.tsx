@@ -76,7 +76,7 @@ export default async function GojoProfilePage() {
           fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 20,
           color: 'var(--text-primary)', textDecoration: 'none', letterSpacing: '0.02em',
         }}>
-          WHOT<span style={{ color: 'var(--gold-base)' }}>NAD</span>
+          WHOT<span style={{ color: 'var(--gold-base)' }}>!</span>
         </Link>
         <Link href="/lobby" style={{
           fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12,
@@ -179,21 +179,9 @@ export default async function GojoProfilePage() {
                         </p>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {match.turnsTaken ?? '?'} turns
-                      </span>
-                      {match.resultTxHash && (
-                        <a
-                          href={`https://monad-testnet.socialscan.io/tx/${match.resultTxHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none' }}
-                        >
-                          tx
-                        </a>
-                      )}
-                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      {match.turnsTaken ?? '?'} turns
+                    </span>
                   </div>
                 );
               })}
