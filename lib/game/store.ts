@@ -7,7 +7,8 @@ import { fetchDrandBeacon } from '@/lib/drand/client';
 import { computeDeckHash } from '@/lib/game-engine/shuffle';
 import { getHandValue } from '@/lib/game-engine/cards';
 import { getAIMove } from '@/lib/ai/agent';
-import { logAgentAction, logAgentError } from '@/lib/ai/logger';
+import { getGojoTrashTalk } from '@/lib/ai/strategy';
+import { logAgentAction, logAgentError, logAgentThoughtTrace } from '@/lib/ai/logger';
 import { db } from '@/lib/db';
 import { matchmakingQueue, matches, users } from '@/lib/db/schema';
 import { desc, eq, or, sql } from 'drizzle-orm';
@@ -196,7 +197,10 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
       : `Drew from market (pending: ${state.pendingDraws})`;
 
     const topCard = state.discardPile[state.discardPile.length - 1];
-    game.lastAgentThought = buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
+    const agentView = buildAgentView(game.state, agentId);
+    const llmThought = await getGojoTrashTalk(agentView, move, cardPlayed ?? null);
+    game.lastAgentThought = llmThought ?? buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
+    logAgentThoughtTrace(matchId, agentId, game.lastAgentThought, game.lastAgentThinkMs ?? 0);
 
     switch (move.action) {
       case 'play':
@@ -219,6 +223,7 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
     logAgentError(matchId, agentId, `Move "${move.action}" invalid: ${errMsg} — falling back to draw`);
     console.warn(`[Agent] Move "${move.action}" invalid, falling back to draw:`, errMsg);
     game.lastAgentThought = GOJO_FALLBACK_THOUGHT;
+    logAgentThoughtTrace(matchId, agentId, game.lastAgentThought, game.lastAgentThinkMs ?? 0);
     game.state = applyTurn(state, agentId, { type: 'draw' });
     logAgentAction(matchId, agentId, 'draw (fallback)', true, 'Fallback after invalid move');
     await persistTurnOutcome(game, tx);
@@ -528,6 +533,8 @@ async function persistActiveGameState(game: ActiveGame, tx: DbExecutor): Promise
     .set({
       gameState: game.state,
       turnsTaken: game.state.turnCount,
+      lastAgentThought: game.lastAgentThought,
+      lastAgentThinkMs: game.lastAgentThinkMs,
     })
     .where(eq(matches.id, game.dbMatchId));
 }
@@ -624,8 +631,8 @@ function toActiveGame(row: MatchRow): ActiveGame | null {
     drandSeed: row.drandSeed ?? '',
     dbMatchId: row.id,
     points: buildPointsSummary(row),
-    lastAgentThinkMs: null,
-    lastAgentThought: null,
+    lastAgentThinkMs: row.lastAgentThinkMs ?? null,
+    lastAgentThought: row.lastAgentThought ?? null,
   };
 }
 

@@ -48,6 +48,13 @@ export function logAgentResponse(matchId: string, agentId: string, rawResponse: 
   Parsed: action=${parsedMove.action} cardId=${parsedMove.cardId ?? 'none'} shape=${parsedMove.chosenShape ?? 'none'}`);
 }
 
+export function logAgentThoughtTrace(matchId: string, agentId: string, thought: string, thinkMs: number) {
+  write(`[${timestamp()}] AGENT THOUGHT — Match: ${matchId}
+  Agent:    ${agentId}
+  Think ms: ${thinkMs}
+  Thought:  "${thought}"`);
+}
+
 export function logAgentAction(matchId: string, agentId: string, action: string, success: boolean, detail?: string) {
   const status = success ? '✓' : '✗';
   write(`[${timestamp()}] AGENT ACTION ${status} — Match: ${matchId}

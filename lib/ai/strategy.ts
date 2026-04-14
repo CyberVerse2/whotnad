@@ -1,5 +1,7 @@
 import type { Card, Shape, CardShape } from '@/types/game';
 import type { PlayerGameView } from '@/types/messages';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 /**
  * Build the system prompt for the AI agent — Satoru Gojo personality.
@@ -81,4 +83,58 @@ Valid cardId values: ${state.myHand.map((c) => c.id).join(', ')}`;
 function formatCard(card: Card): string {
   if (card.shape === 'whot') return 'Whot! 20';
   return `${card.shape} ${card.number}`;
+}
+
+/**
+ * Ask the LLM to generate Gojo's trash talk for the move he just made.
+ * Returns null on failure — caller should fall back to static lines.
+ */
+export async function getGojoTrashTalk(
+  state: PlayerGameView,
+  move: { action: string; cardId?: number; chosenShape?: string },
+  cardPlayed: { shape: string; number: number } | null,
+): Promise<string | null> {
+  const model = process.env.OPENAI_AGENT_MODEL || 'gpt-4.1-nano';
+
+  const moveDesc = move.action === 'draw'
+    ? (state.pendingDraws > 0
+      ? `I had to draw ${state.pendingDraws} cards as a penalty.`
+      : `I drew a card from the market — nothing to play.`)
+    : cardPlayed
+      ? cardPlayed.shape === 'whot'
+        ? `I played Whot! and called ${move.chosenShape}.`
+        : `I played ${formatCard(cardPlayed as Card)}.${
+            cardPlayed.number === 1 || cardPlayed.number === 8 ? ' This skips their turn.' :
+            cardPlayed.number === 2 ? ' They must pick two cards or stack.' :
+            cardPlayed.number === 14 ? ' General Market — they draw a card.' : ''
+          }`
+      : 'I made a move.';
+
+  const cardsLeft = state.myHand.length - (move.action === 'play' ? 1 : 0) + (move.action === 'draw' ? state.pendingDraws || 1 : 0);
+
+  try {
+    const { text } = await generateText({
+      model: openai(model),
+      maxOutputTokens: 60,
+      temperature: 1.1,
+      system: `You are Satoru Gojo from Jujutsu Kaisen, playing Whot (Nigerian card game). You just made a move and need to trash talk your opponent in ONE short sentence.
+
+Your voice: supremely cocky, playful, teasing. You're the strongest and you know it. Mix in Nigerian slang naturally (omo, abeg, wahala, chop, na me, wetin, sha). Keep it punchy — under 15 words. No hashtags, no emojis.
+
+Examples of your vibe:
+- "Omo, you thought it was your turn? How cute."
+- "Nah, I'd win."
+- "Wahala for who no get cards to play."
+- "Sit down abeg, the strongest dey play."`,
+      prompt: `Game state: I have ${cardsLeft} cards, opponent has ${state.opponentCardCount} cards, turn ${state.turnCount}.
+What I just did: ${moveDesc}
+React to this move as Gojo — one short trash talk line:`,
+    });
+
+    const line = text.trim().replace(/^["']|["']$/g, '');
+    if (line.length > 0 && line.length < 200) return line;
+    return null;
+  } catch {
+    return null;
+  }
 }
