@@ -71,7 +71,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     const voiceLine = data.lastAgentVoiceLine ?? null;
     if (thought && thought !== lastSpokenThoughtRef.current && voiceLine) {
       lastSpokenThoughtRef.current = thought;
-      playTinubuVoice(voiceLine);
+      playTinubuVoice(Number(voiceLine));
     }
 
     if (data.view.status === 'finished') {
@@ -138,7 +138,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         const voiceLine = msg.lastAgentVoiceLine ?? null;
         if (thought && thought !== lastSpokenThoughtRef.current && voiceLine) {
           lastSpokenThoughtRef.current = thought;
-          playTinubuVoice(voiceLine);
+          playTinubuVoice(Number(voiceLine));
         }
         setState((s) => ({
           ...s,
@@ -156,7 +156,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         const voiceLine = msg.lastAgentVoiceLine ?? null;
         if (thought && thought !== lastSpokenThoughtRef.current && voiceLine) {
           lastSpokenThoughtRef.current = thought;
-          playTinubuVoice(voiceLine);
+          playTinubuVoice(Number(voiceLine));
         }
         setState((s) => ({
           ...s,
