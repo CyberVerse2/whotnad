@@ -4,15 +4,6 @@ import type { PlayerGameView, PointsSummary } from '@/types/messages';
 import { initializeGame, applyTurn, getPlayerView } from '@/lib/game-engine';
 import { calculateMatchPoints } from '@/lib/game-engine/points';
 import { fetchDrandBeacon } from '@/lib/drand/client';
-import {
-  claimMatchAsPool,
-  depositToMatchOnChain,
-  getPoolWalletAddress,
-  submitResultOnChain,
-  matchIdToBytes32,
-  hashFinalState,
-  getOnChainMatch,
-} from '@/lib/chain/pool-wallet';
 import { computeDeckHash } from '@/lib/game-engine/shuffle';
 import { getHandValue } from '@/lib/game-engine/cards';
 import { getAIMove } from '@/lib/ai/agent';
@@ -28,9 +19,7 @@ interface ActiveGame {
   state: GameState;
   drandSeed: string;
   dbMatchId: string;
-  contractMatchId: string | null;
   points: PointsSummary | null;
-  resultTxHash: string | null;
   lastAgentThinkMs: number | null;
   lastAgentThought: string | null;
 }
@@ -38,14 +27,12 @@ interface ActiveGame {
 export async function joinQueue(userId: string): Promise<{
   status: 'queued' | 'matched';
   matchId?: string;
-  contractMatchId?: string;
 }> {
   const activeMatch = await findActiveMatchForUser(userId);
   if (activeMatch?.gameMatchId) {
     return {
       status: 'matched',
       matchId: activeMatch.gameMatchId,
-      contractMatchId: activeMatch.contractMatchId ?? undefined,
     };
   }
 
@@ -69,14 +56,12 @@ export async function leaveQueue(userId: string): Promise<void> {
 export async function getQueueStatus(userId: string): Promise<{
   status: 'idle' | 'queued' | 'matched';
   matchId?: string;
-  contractMatchId?: string;
 }> {
   const activeMatch = await findActiveMatchForUser(userId);
   if (activeMatch?.gameMatchId) {
     return {
       status: 'matched',
       matchId: activeMatch.gameMatchId,
-      contractMatchId: activeMatch.contractMatchId ?? undefined,
     };
   }
 
@@ -133,7 +118,6 @@ export async function tryMatch(): Promise<{
   }
 
   const matchId = randomUUID();
-  const contractMatchId = matchIdToBytes32(matchId);
   const state = initializeGame(matchId, [p1.privyUserId, p2.privyUserId], seed);
 
   await db.insert(matches).values({
@@ -142,16 +126,8 @@ export async function tryMatch(): Promise<{
     player2Id: p2.privyUserId,
     status: 'active',
     drandSeed: seed,
-    contractMatchId,
-    entryFee: '1000000000000000000',
     gameState: state,
   });
-
-  if (isEscrowRequired() && (isAgent(p1.privyUserId) || isAgent(p2.privyUserId))) {
-    void ensureAgentDeposit(contractMatchId).catch((error) => {
-      console.error(`Failed to auto-fund agent match ${matchId}`, error);
-    });
-  }
 
   return { matched: true, matchId };
 }
@@ -163,8 +139,8 @@ function isAgent(userId: string): boolean {
 export async function getGameState(matchId: string, userId: string): Promise<{
   view: PlayerGameView;
   points: PointsSummary | null;
-  contractMatchId: string | null;
-  resultTxHash: string | null;
+  contractMatchId: null;
+  resultTxHash: null;
 } | null> {
   return withMatchLock(matchId, async (tx) => {
     const row = await findMatchByGameId(matchId, tx);
@@ -174,12 +150,12 @@ export async function getGameState(matchId: string, userId: string): Promise<{
     if (!game) return null;
     if (!game.state.playerOrder.includes(userId)) return null;
 
-  if (game.state.status === 'active') {
-    const currentPlayer = game.state.playerOrder[game.state.currentPlayerIndex];
-    if (isAgent(currentPlayer) && await isMatchFunded(game)) {
-      await tickAgentTurn(game, currentPlayer, tx);
+    if (game.state.status === 'active') {
+      const currentPlayer = game.state.playerOrder[game.state.currentPlayerIndex];
+      if (isAgent(currentPlayer)) {
+        await tickAgentTurn(game, currentPlayer, tx);
+      }
     }
-  }
 
     return buildGameStateResponse(game, userId);
   });
@@ -217,8 +193,6 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
         ? `Drew from market (pending: ${state.pendingDraws})`
         : 'Declared Last Card';
 
-    // Build human-readable thought for the UI
-    const hand = state.hands[agentId];
     const topCard = state.discardPile[state.discardPile.length - 1];
     game.lastAgentThought = buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
 
@@ -278,7 +252,6 @@ function buildAgentThought(
   if (move.action === 'play' && cardPlayed) {
     const parts: string[] = [];
 
-    // What was played
     if (cardPlayed.shape === 'whot') {
       parts.push(`Played Whot! and called ${move.chosenShape}.`);
     } else {
@@ -288,7 +261,6 @@ function buildAgentThought(
       parts.push(`Played ${cardName(cardPlayed)} (${matchReason}).`);
     }
 
-    // Why — special card effects
     if (cardPlayed.number === 1 || cardPlayed.number === 8) {
       parts.push('Skipping your turn.');
     } else if (cardPlayed.number === 2) {
@@ -297,7 +269,6 @@ function buildAgentThought(
       parts.push('General Market — you draw 1.');
     }
 
-    // Hand size context
     if (hand.length <= 3) {
       parts.push(`${hand.length - 1} card${hand.length - 1 === 1 ? '' : 's'} left.`);
     }
@@ -338,9 +309,6 @@ export async function playCard(
     const game = await loadGameForAction(matchId, tx);
     if (!game) return { success: false, error: 'Game not found' };
     if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
-    if (!(await isMatchFunded(game))) {
-      return { success: false, error: 'Match is not funded yet' };
-    }
 
     try {
       game.state = applyTurn(game.state, userId, {
@@ -364,9 +332,6 @@ export async function drawCard(
     const game = await loadGameForAction(matchId, tx);
     if (!game) return { success: false, error: 'Game not found' };
     if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
-    if (!(await isMatchFunded(game))) {
-      return { success: false, error: 'Match is not funded yet' };
-    }
 
     try {
       game.state = applyTurn(game.state, userId, { type: 'draw' });
@@ -386,9 +351,6 @@ export async function declareLastCard(
     const game = await loadGameForAction(matchId, tx);
     if (!game) return { success: false, error: 'Game not found' };
     if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
-    if (!(await isMatchFunded(game))) {
-      return { success: false, error: 'Match is not funded yet' };
-    }
 
     try {
       game.state = applyTurn(game.state, userId, { type: 'declare_last_card' });
@@ -410,7 +372,6 @@ export async function forfeitGame(
     if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
     if (!game.state.playerOrder.includes(userId)) return { success: false, error: 'Not a player in this game' };
 
-    // Set the opponent as winner
     const opponentId = game.state.playerOrder.find((id) => id !== userId)!;
     game.state.winner = opponentId;
     game.state.status = 'finished';
@@ -467,11 +428,6 @@ async function finalizeGame(game: ActiveGame, tx: DbExecutor): Promise<void> {
   } catch (err) {
     console.error(`[Season] Failed to update season points for ${game.state.matchId}:`, err);
   }
-
-  // Fire-and-forget — don't block the response waiting for chain confirmation
-  submitOnChain(game).catch((err) => {
-    console.error(`[Chain] Failed to submit result for ${game.state.matchId}:`, err);
-  });
 }
 
 async function persistActiveGameState(game: ActiveGame, tx: DbExecutor): Promise<void> {
@@ -505,89 +461,8 @@ async function persistFinishedMatch(
       loserPenaltyScore: getHandValue(loserHand),
       winnerPoints: points.winnerPoints,
       loserPoints: points.loserPoints,
-      payout: '1800000000000000000',
-      rake: '200000000000000000',
     })
     .where(eq(matches.id, game.dbMatchId));
-}
-
-async function submitOnChain(game: ActiveGame): Promise<void> {
-  if (!process.env.TOURNAMENT_POOL_ADDRESS || !process.env.POOL_WALLET_PRIVATE_KEY) {
-    console.warn('[Chain] Contract not configured, skipping on-chain submission');
-    return;
-  }
-
-  const winnerId = game.state.winner!;
-  const winnerWallet = await getWalletAddressForPrivyId(winnerId);
-  if (!winnerWallet) {
-    console.warn(`[Chain] Missing wallet address for winner ${winnerId}, skipping settlement`);
-    return;
-  }
-
-  const contractMatchId = game.contractMatchId as `0x${string}`;
-  if (!contractMatchId) {
-    console.warn(`[Chain] Missing contract match id for ${game.state.matchId}`);
-    return;
-  }
-
-  const onChainMatch = await getOnChainMatch(contractMatchId);
-  const onChainStatus = Number(onChainMatch.status);
-
-  if (onChainStatus !== 2) {
-    console.warn(
-      `[Chain] Match ${game.state.matchId} is not funded on-chain (status ${onChainStatus}), skipping settlement`
-    );
-    return;
-  }
-
-  const fundedPlayers = [
-    onChainMatch.player1.toLowerCase(),
-    onChainMatch.player2.toLowerCase(),
-  ];
-
-  if (!fundedPlayers.includes(winnerWallet.toLowerCase())) {
-    console.warn(
-      `[Chain] Winner wallet ${winnerWallet} is not one of the funded players for match ${game.state.matchId}`
-    );
-    return;
-  }
-
-  const deckHash = await computeDeckHash(game.state.deck);
-  const finalState = JSON.stringify({
-    hands: game.state.hands,
-    discardPile: game.state.discardPile,
-    turnCount: game.state.turnCount,
-    winner: winnerId,
-  });
-  const finalStateHashHex = hashFinalState(finalState);
-
-  const txHash = await submitResultOnChain(
-    contractMatchId,
-    winnerWallet as `0x${string}`,
-    `0x${deckHash}` as `0x${string}`,
-    finalStateHashHex,
-  );
-
-  game.resultTxHash = txHash;
-
-  await db
-    .update(matches)
-    .set({
-      resultTxHash: txHash,
-      finalStateHash: finalStateHashHex,
-      monadTxHash: txHash,
-    })
-    .where(eq(matches.id, game.dbMatchId));
-
-  if (isAgent(winnerId)) {
-    await claimMatchAsPool(contractMatchId);
-    await db
-      .update(matches)
-      .set({ claimed: true })
-      .where(eq(matches.id, game.dbMatchId));
-  }
-
-  console.log(`[Chain] Result submitted for match ${game.state.matchId}: ${txHash}`);
 }
 
 export async function getUserMatches(userId: string) {
@@ -656,9 +531,7 @@ function toActiveGame(row: MatchRow): ActiveGame | null {
     state: row.gameState,
     drandSeed: row.drandSeed ?? '',
     dbMatchId: row.id,
-    contractMatchId: row.contractMatchId ?? null,
     points: buildPointsSummary(row),
-    resultTxHash: row.resultTxHash ?? null,
     lastAgentThinkMs: null,
     lastAgentThought: null,
   };
@@ -686,8 +559,8 @@ function buildGameStateResponse(game: ActiveGame, userId: string) {
   return {
     view,
     points: game.points,
-    contractMatchId: game.contractMatchId,
-    resultTxHash: game.resultTxHash,
+    contractMatchId: null,
+    resultTxHash: null,
     lastAgentThinkMs: game.lastAgentThinkMs,
     lastAgentThought: game.lastAgentThought,
   };
@@ -724,21 +597,6 @@ function isGameState(value: unknown): value is GameState {
   );
 }
 
-async function getWalletAddressForPrivyId(privyId: string): Promise<string | null> {
-  if (isAgent(privyId)) {
-    return getPoolWalletAddress();
-  }
-
-  const [user] = await db
-    .select({ walletAddress: users.walletAddress })
-    .from(users)
-    .where(eq(users.privyId, privyId))
-    .limit(1);
-
-  if (!user?.walletAddress) return null;
-  return user.walletAddress;
-}
-
 async function getUserUuidByPrivyId(privyId: string): Promise<string | null> {
   if (isAgent(privyId)) return null;
 
@@ -761,29 +619,4 @@ async function withMatchLock<T>(
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${matchId}))`);
     return work(tx as unknown as DbExecutor);
   });
-}
-
-function isEscrowRequired(): boolean {
-  return Boolean(process.env.TOURNAMENT_POOL_ADDRESS);
-}
-
-async function isMatchFunded(game: ActiveGame): Promise<boolean> {
-  if (!isEscrowRequired()) return true;
-  if (!game.contractMatchId) return false;
-
-  const onChainMatch = await getOnChainMatch(game.contractMatchId as `0x${string}`);
-  return Number(onChainMatch.status) >= 2;
-}
-
-async function ensureAgentDeposit(contractMatchId: string): Promise<void> {
-  const onChainMatch = await getOnChainMatch(contractMatchId as `0x${string}`);
-  const status = Number(onChainMatch.status);
-  const poolWallet = getPoolWalletAddress().toLowerCase();
-
-  if (status >= 2) return;
-  if (onChainMatch.player1.toLowerCase() === poolWallet || onChainMatch.player2.toLowerCase() === poolWallet) {
-    return;
-  }
-
-  await depositToMatchOnChain(contractMatchId as `0x${string}`);
 }

@@ -16,9 +16,9 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Whotnad — Play for MON",
+  title: "Whot! — Nigeria's Card Game",
   description:
-    "Nigeria's card game, on-chain. 1v1 matches for MON prizes. Weekly seasons. AI opponents. Built on Monad.",
+    "Nigeria's card game, online. 1v1 matches with points and seasons. AI opponents. Play now.",
 };
 
 export default function RootLayout({

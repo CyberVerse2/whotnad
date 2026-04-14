@@ -44,7 +44,7 @@ function hashString(str: string): number {
 }
 
 /**
- * Compute a SHA-256 hash of the deck order for on-chain verification.
+ * Compute a SHA-256 hash of the deck order for verification.
  * Returns hex string.
  */
 export async function computeDeckHash(deck: Card[]): Promise<string> {

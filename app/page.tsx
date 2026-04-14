@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/navbar';
-
-const SHAPES = ['●', '▲', '✚', '■', '★'] as const;
+import { ShapeLottery } from '@/components/home/shape-lottery';
 
 export default function Home() {
   return (
@@ -11,23 +10,8 @@ export default function Home() {
       <main className="flex-1 flex flex-col items-center justify-center px-6">
         {/* Hero */}
         <div className="text-center max-w-3xl animate-slide-up">
-          {/* Floating shapes */}
-          <div className="flex justify-center gap-3 mb-6"
-            style={{ color: 'var(--text-muted)' }}>
-            {SHAPES.map((s, i) => (
-              <span
-                key={i}
-                className="text-xl animate-shape-float"
-                style={{
-                  display: 'inline-block',
-                  animationDelay: `${i * 0.3}s`,
-                  opacity: 0.6,
-                }}
-              >
-                {s}
-              </span>
-            ))}
-          </div>
+          {/* Lottery-style shape cycling */}
+          <ShapeLottery />
 
           <h1 className="font-display font-black tracking-tight mb-6"
             style={{
@@ -37,12 +21,12 @@ export default function Home() {
             }}>
             PLAY WHOT
             <br />
-            <span style={{ color: 'var(--gold-base)' }}>WIN MON</span>
+            <span style={{ color: 'var(--gold-base)' }}>WIN BIG</span>
           </h1>
 
           <p className="font-display text-lg max-w-lg mx-auto mb-10 leading-relaxed"
             style={{ color: 'var(--text-secondary)', textTransform: 'none', lineHeight: 1.6, letterSpacing: '0.01em' }}>
-            Nigeria&apos;s card game, played for real stakes on Monad.
+            Nigeria&apos;s card game, played for real stakes.
             1v1 matches. Weekly seasons. AI opponents that play to win.
           </p>
 
@@ -68,11 +52,11 @@ export default function Home() {
         <div className="mt-20 w-full max-w-2xl animate-slide-up stagger-2">
           <div className="flex items-center justify-between px-6 py-4 rounded"
             style={{ background: 'var(--surface-2)' }}>
-            <StakeStat label="ENTRY" value="1 MON" />
+            <StakeStat label="MATCHES" value="1v1" />
             <div className="w-px h-8" style={{ background: 'var(--surface-3)' }} />
-            <StakeStat label="WINNER" value="1.8 MON" accent />
+            <StakeStat label="SEASONS" value="WEEKLY" accent />
             <div className="w-px h-8" style={{ background: 'var(--surface-3)' }} />
-            <StakeStat label="RAKE" value="10%" />
+            <StakeStat label="AI" value="GOJO" />
           </div>
         </div>
 
@@ -101,7 +85,7 @@ export default function Home() {
 
       <footer className="font-display text-center py-6 text-xs"
         style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--surface-2)', textTransform: 'none', letterSpacing: '0.02em' }}>
-        Verifiable on Monad. Randomness by Drand. Every game on-chain.
+        Randomness by Drand. Fair play guaranteed.
       </footer>
     </div>
   );

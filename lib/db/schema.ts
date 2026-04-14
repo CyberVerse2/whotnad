@@ -14,7 +14,7 @@ import type { GameState } from '@/types/game';
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   privyId: text('privy_id').notNull().unique(),
-  walletAddress: text('wallet_address').notNull(),
+  walletAddress: text('wallet_address'),
   displayName: text('display_name'),
   isAgent: boolean('is_agent').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -29,9 +29,9 @@ export const matchmakingQueue = pgTable('matchmaking_queue', {
 export const matches = pgTable('matches', {
   id: uuid('id').defaultRandom().primaryKey(),
   gameMatchId: text('game_match_id').unique(),
-  player1Id: text('player1_id').notNull(),   // privy user ID
-  player2Id: text('player2_id').notNull(),   // privy user ID
-  winnerId: text('winner_id'),               // privy user ID
+  player1Id: text('player1_id').notNull(),
+  player2Id: text('player2_id').notNull(),
+  winnerId: text('winner_id'),
   status: text('match_status', { enum: ['active', 'finished'] })
     .notNull()
     .default('active'),

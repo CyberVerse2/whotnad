@@ -14,7 +14,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protected API routes — require Privy auth token
+  // Protected API routes — require auth token
   if (pathname.startsWith('/api/')) {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');

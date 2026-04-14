@@ -1,15 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useGame } from '@/hooks/use-game';
 import Link from 'next/link';
 
 export default function LobbyPage() {
-  const { user, login, logout, authenticated, ready } = usePrivy();
   const router = useRouter();
-  const userId = user?.id ?? null;
+  const [userId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('whot-user-id');
+      if (stored) return stored;
+      const id = `user-${crypto.randomUUID().slice(0, 8)}`;
+      localStorage.setItem('whot-user-id', id);
+      return id;
+    }
+    return null;
+  });
 
   const {
     phase,
@@ -18,7 +25,7 @@ export default function LobbyPage() {
     error,
     joinQueue,
     leaveQueue,
-  } = useGame(authenticated ? userId : null);
+  } = useGame(userId);
 
   useEffect(() => {
     if ((phase === 'matched' || phase === 'playing') && matchId) {
@@ -26,7 +33,7 @@ export default function LobbyPage() {
     }
   }, [phase, matchId, router]);
 
-  if (!ready) {
+  if (!userId) {
     return (
       <div className="felt-texture" style={{
         display: 'flex',
@@ -43,49 +50,6 @@ export default function LobbyPage() {
         }}>
           LOADING...
         </span>
-      </div>
-    );
-  }
-
-  if (!authenticated) {
-    return (
-      <div className="felt-texture" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        gap: 24,
-      }}>
-        <h1 className="font-display" style={{
-          fontSize: 'clamp(3rem, 8vw, 5rem)',
-          fontWeight: 900,
-          color: 'var(--text-primary)',
-          lineHeight: 0.9,
-        }}>
-          WHOT<span style={{ color: 'var(--gold-base)' }}>!</span>
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>
-          Connect your wallet to play
-        </p>
-        <button
-          onClick={login}
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 800,
-            fontSize: 14,
-            letterSpacing: '0.08em',
-            background: 'var(--accent)',
-            color: '#fff',
-            padding: '14px 32px',
-            borderRadius: 6,
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'transform 0.15s',
-          }}
-        >
-          CONNECT WALLET
-        </button>
       </div>
     );
   }
@@ -137,7 +101,7 @@ export default function LobbyPage() {
           WHOT<span style={{ color: 'var(--gold-base)' }}>!</span>
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-          1v1 for MON on Monad
+          1v1 card battles with points and seasons
         </p>
       </div>
 
@@ -407,36 +371,6 @@ export default function LobbyPage() {
           Leaderboard
         </Link>
       </div>
-
-      {/* Wallet + Disconnect */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 10,
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          letterSpacing: '0.05em',
-        }}>
-          {user?.wallet?.address?.slice(0, 6)}...{user?.wallet?.address?.slice(-4)}
-        </p>
-        <button
-          onClick={logout}
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: '0.06em',
-            color: 'var(--danger)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-        >
-          DISCONNECT
-        </button>
-      </div>
-
     </div>
   );
 }

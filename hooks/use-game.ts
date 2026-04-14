@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
 import type { Shape } from '@/types/game';
 import type { PlayerGameView, PointsSummary } from '@/types/messages';
 import { soundWin, soundLose, soundError as soundErrorFx, soundMatchFound } from '@/lib/sounds';
@@ -9,29 +8,18 @@ import { soundWin, soundLose, soundError as soundErrorFx, soundMatchFound } from
 export type GamePhase = 'idle' | 'queued' | 'matched' | 'playing' | 'finished';
 
 const POLL_INTERVAL_QUEUE = 1500;
-const POLL_INTERVAL_WAITING = 1500; // only poll when waiting for opponent
+const POLL_INTERVAL_WAITING = 1500;
 
 interface GameHookState {
   phase: GamePhase;
   gameState: PlayerGameView | null;
   matchId: string | null;
-  contractMatchId: string | null;
-  resultTxHash: string | null;
   winner: string | null;
   points: PointsSummary | null;
   error: string | null;
   lastAgentThinkMs: number | null;
   lastAgentThought: string | null;
   forfeiting: boolean;
-}
-
-interface DepositStatus {
-  funded: boolean;
-  refundable: boolean;
-  player1: string;
-  player2: string;
-  status: number;
-  fundedAt: number;
 }
 
 interface GameStatePayload {
@@ -44,14 +32,10 @@ interface GameStatePayload {
 }
 
 export function useGame(userId: string | null, initialMatchId?: string | null) {
-  const { getAccessToken } = usePrivy();
-
   const [state, setState] = useState<GameHookState>({
     phase: initialMatchId ? 'playing' : 'idle',
     gameState: null,
     matchId: initialMatchId ?? null,
-    contractMatchId: null,
-    resultTxHash: null,
     winner: null,
     points: null,
     error: null,
@@ -59,7 +43,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     lastAgentThought: null,
     forfeiting: false,
   });
-  const [depositStatus, setDepositStatus] = useState<DepositStatus | null>(null);
   const connected = Boolean(userId);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -69,22 +52,19 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     matchIdRef.current = state.matchId;
   }, [state.matchId]);
 
-  // ── Authenticated fetch helper ──
   const authFetch = useCallback(async (url: string, options: RequestInit = {}) => {
-    const token = await getAccessToken();
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string> || {}),
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (userId) {
+      headers['Authorization'] = `Bearer ${userId}`;
     }
     if (options.body) {
       headers['Content-Type'] = 'application/json';
     }
     return fetch(url, { ...options, headers });
-  }, [getAccessToken]);
+  }, [userId]);
 
-  // ── Stop polling ──
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -92,7 +72,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     }
   }, []);
 
-  // ── Fetch game state once (no loop) ──
   const applyGameStatePayload = useCallback((data: GameStatePayload) => {
     if (data.view.status === 'finished') {
       setState((s) => ({
@@ -101,14 +80,11 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         gameState: data.view,
         winner: data.view.winner,
         points: data.points,
-        contractMatchId: data.contractMatchId,
-        resultTxHash: data.resultTxHash,
         lastAgentThinkMs: data.lastAgentThinkMs,
         lastAgentThought: data.lastAgentThought ?? null,
         forfeiting: false,
       }));
       stopPolling();
-      // Win/lose sound
       if (data.view.winner === userId) {
         soundWin();
       } else {
@@ -121,8 +97,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       ...s,
       phase: 'playing',
       gameState: data.view,
-      contractMatchId: data.contractMatchId,
-      resultTxHash: data.resultTxHash,
       lastAgentThinkMs: data.lastAgentThinkMs,
       lastAgentThought: data.lastAgentThought ?? null,
       forfeiting: false,
@@ -130,7 +104,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     }));
 
     return data.view;
-  }, [stopPolling]);
+  }, [stopPolling, userId]);
 
   const fetchGameState = useCallback(async (): Promise<PlayerGameView | null> => {
     const matchId = matchIdRef.current;
@@ -147,19 +121,16 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     }
   }, [userId, authFetch, applyGameStatePayload]);
 
-  // ── Poll while waiting for opponent's turn ──
   const startWaitingPoll = useCallback(() => {
     stopPolling();
     pollingRef.current = setInterval(async () => {
       const view = await fetchGameState();
-      // Stop polling once it's our turn again (or game ended)
       if (view && (view.isMyTurn || view.status === 'finished')) {
         stopPolling();
       }
     }, POLL_INTERVAL_WAITING);
   }, [fetchGameState, stopPolling]);
 
-  // ── Poll queue status ──
   const pollQueue = useCallback(async () => {
     if (!userId) return;
     try {
@@ -180,22 +151,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     }
   }, [userId, authFetch, stopPolling]);
 
-  const pollDepositStatus = useCallback(async (matchId: string) => {
-    try {
-      const res = await authFetch('/api/wallet/deposit', {
-        method: 'POST',
-        body: JSON.stringify({ matchId }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json() as DepositStatus;
-      setDepositStatus(data);
-      return data;
-    } catch {
-      return null;
-    }
-  }, [authFetch]);
-
-  // ── Phase-based effects ──
   useEffect(() => {
     stopPolling();
 
@@ -203,7 +158,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       void pollQueue();
       pollingRef.current = setInterval(pollQueue, POLL_INTERVAL_QUEUE);
     } else if (state.phase === 'playing' && !state.gameState) {
-      // Initial load — fetch state once, then decide
       void fetchGameState().then((view) => {
         if (view && !view.isMyTurn && view.status === 'active') {
           startWaitingPoll();
@@ -214,11 +168,9 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     return stopPolling;
   }, [state.phase, state.gameState === null, pollQueue, fetchGameState, startWaitingPoll, stopPolling]);
 
-  // ── Actions ──
-
   const joinQueue = useCallback(async () => {
     if (!userId) {
-      setState((s) => ({ ...s, error: 'Connect your wallet before joining a match' }));
+      setState((s) => ({ ...s, error: 'Sign in before joining a match' }));
       return;
     }
     try {
@@ -241,16 +193,14 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
           ...s,
           phase: 'playing',
           matchId: data.matchId,
-          contractMatchId: data.contractMatchId ?? null,
         }));
-        void pollDepositStatus(data.matchId);
       } else {
         setState((s) => ({ ...s, phase: 'queued', error: null }));
       }
     } catch {
       setState((s) => ({ ...s, error: 'Failed to join queue' }));
     }
-  }, [userId, authFetch, pollDepositStatus]);
+  }, [userId, authFetch]);
 
   const leaveQueue = useCallback(async () => {
     if (!userId) return;
@@ -272,7 +222,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   ) => {
     if (!userId || !state.matchId) return;
 
-    // ── Optimistic update ──
     if (action === 'play' && cardId !== undefined && state.gameState) {
       const playedCard = state.gameState.myHand.find((c) => c.id === cardId);
       if (playedCard) {
@@ -291,12 +240,8 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
           };
         });
       }
-    } else if (action === 'draw') {
-      // No optimistic update for draw — we don't know which card(s) were drawn.
-      // The server response via fetchGameState will provide the updated hand.
     }
 
-    // ── Send to server ──
     try {
       const res = await authFetch('/api/game/action', {
         method: 'POST',
@@ -312,7 +257,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       const data = await res.json();
 
       if (!res.ok) {
-        // Revert: fetch real state
         await fetchGameState();
         soundErrorFx();
         setState((s) => ({ ...s, error: data.error }));
@@ -324,8 +268,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         ? applyGameStatePayload(data as GameStatePayload)
         : await fetchGameState();
 
-      // If it's still not our turn (opponent is human, or agent hasn't played yet),
-      // start polling until it is
       if (view && !view.isMyTurn && view.status === 'active') {
         startWaitingPoll();
       }
@@ -389,8 +331,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       phase: 'idle',
       gameState: null,
       matchId: null,
-      contractMatchId: null,
-      resultTxHash: null,
       winner: null,
       points: null,
       error: null,
@@ -398,15 +338,12 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       lastAgentThought: null,
       forfeiting: false,
     });
-    setDepositStatus(null);
   }, [stopPolling]);
 
   return {
     ...state,
     connected,
     log: [],
-    depositStatus,
-    refreshDepositStatus: () => state.matchId ? pollDepositStatus(state.matchId) : Promise.resolve(null),
     joinQueue,
     leaveQueue,
     playCard,

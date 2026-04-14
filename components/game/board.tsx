@@ -21,8 +21,6 @@ import {
 interface BoardProps {
   gameState: PlayerGameView;
   userId: string;
-  walletAddress: string | null;
-  balance: string | null;
   onPlayCard: (cardId: number, chosenShape?: Shape) => void;
   onDraw: () => void;
   onDeclareLastCard: () => void;
@@ -37,8 +35,6 @@ interface BoardProps {
 export function Board({
   gameState,
   userId,
-  walletAddress,
-  balance,
   onPlayCard,
   onDraw,
   onDeclareLastCard,
@@ -177,7 +173,7 @@ export function Board({
           fontWeight: 900,
           color: 'var(--text-primary)',
         }}>
-          WHOT<span style={{ color: 'var(--gold-base)' }}>NAD</span>
+          WHOT<span style={{ color: 'var(--gold-base)' }}>!</span>
         </span>
         <Link
           href={`/profile/${userId}`}
@@ -194,24 +190,14 @@ export function Board({
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface-1)')}
         >
-          {balance !== null && (
-            <span className="font-display" style={{
-              fontSize: 13,
-              fontWeight: 800,
-              color: 'var(--gold-base)',
-            }}>
-              {parseFloat(balance).toFixed(2)} MON
-            </span>
-          )}
-          {walletAddress && (
-            <span style={{
-              fontSize: 11,
-              color: 'var(--text-muted)',
-              fontFamily: 'monospace',
-            }}>
-              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-            </span>
-          )}
+          <span className="font-display" style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: 'var(--text-secondary)',
+            letterSpacing: '0.06em',
+          }}>
+            PROFILE
+          </span>
         </Link>
       </nav>
 
