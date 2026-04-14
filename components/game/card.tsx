@@ -3,18 +3,18 @@
 import { useState, useRef } from 'react';
 import type { Card as CardType, CardShape } from '@/types/game';
 
-const SHAPE_STYLES: Record<CardShape, { color: string; tint: string; icon: string }> = {
-  circle:   { color: '#1a5fb4', tint: '#c4daf6', icon: '●' },
-  star:     { color: '#613583', tint: '#d5c5e8', icon: '★' },
-  cross:    { color: '#2d6328', tint: '#cce5ca', icon: '✚' },
-  square:   { color: '#6b3a1f', tint: '#f5d5b8', icon: '■' },
-  triangle: { color: '#8b2025', tint: '#f2c4c6', icon: '▲' },
-  whot:     { color: '#7d5c07', tint: '#eee8d5', icon: '✦' },
+const SHAPE_STYLES: Record<CardShape, { color: string; tint: string; bg: string; icon: string }> = {
+  circle:   { color: '#4DA6E8', tint: '#1B3A52', bg: '#0F2233', icon: '●' },
+  star:     { color: '#B47AE8', tint: '#3D2155', bg: '#241435', icon: '★' },
+  cross:    { color: '#2ECC71', tint: '#1A4D2E', bg: '#0F2E1A', icon: '✚' },
+  square:   { color: '#E8923A', tint: '#4D3218', bg: '#2E1E0F', icon: '■' },
+  triangle: { color: '#E74C3C', tint: '#4D1A15', bg: '#2E0F0C', icon: '▲' },
+  whot:     { color: '#D4A017', tint: '#4D3C0A', bg: '#2E2406', icon: '✦' },
 };
 
 interface CardProps {
   card: CardType;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   disabled?: boolean;
   highlighted?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -56,15 +56,15 @@ export function Card({
   }
 
   // Build shadow
-  let shadow = '0 1px 3px rgba(0,0,0,0.1)';
+  let shadow = '0 2px 6px rgba(0,0,0,0.4)';
   if (isPressed && interactive) {
-    shadow = '0 2px 4px rgba(0,0,0,0.15)';
+    shadow = '0 1px 3px rgba(0,0,0,0.5)';
   } else if (highlighted && isHovered) {
-    shadow = `0 8px 24px ${s.color}33`;
+    shadow = `0 8px 24px ${s.color}44, 0 0 0 1px ${s.color}33`;
   } else if (highlighted) {
-    shadow = `0 4px 16px ${s.color}22`;
+    shadow = `0 4px 16px ${s.color}33, 0 0 0 1px ${s.color}22`;
   } else if (isHovered && interactive) {
-    shadow = '0 4px 12px rgba(0,0,0,0.12)';
+    shadow = '0 6px 16px rgba(0,0,0,0.5)';
   }
 
   return (
@@ -79,13 +79,13 @@ export function Card({
       style={{
         width: dims.w,
         height: dims.h,
-        background: '#fff',
+        background: s.bg,
         border: highlighted
           ? `2px solid ${s.color}`
-          : '1px solid #d4d4d4',
+          : '1px solid rgba(255,255,255,0.08)',
         borderRadius: 8,
         cursor: interactive ? 'pointer' : 'default',
-        opacity: disabled && !highlighted ? 0.45 : 1,
+        opacity: 1,
         transform,
         transition: 'transform 0.2s cubic-bezier(0.16,1,0.3,1), border-color 0.15s, opacity 0.2s, box-shadow 0.2s',
         display: 'flex',
@@ -98,16 +98,16 @@ export function Card({
         outline: 'none',
       }}
     >
-      {/* Bottom tint */}
+      {/* Bottom tint wash */}
       <div style={{
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
-        height: '50%',
-        background: s.tint,
+        height: '55%',
+        background: `linear-gradient(to top, ${s.tint}, transparent)`,
         transition: 'opacity 0.15s',
-        opacity: isHovered && interactive ? 0.85 : 1,
+        opacity: isHovered && interactive ? 0.9 : 0.7,
       }} />
 
       {/* Top-left: number + small icon */}
@@ -121,7 +121,7 @@ export function Card({
       }}>
         <span style={{
           fontFamily: 'var(--font-display)',
-          fontWeight: 800,
+          fontWeight: 700,
           fontSize: numSize,
           color: s.color,
           lineHeight: 1,
@@ -133,6 +133,7 @@ export function Card({
           color: s.color,
           lineHeight: 1,
           marginTop: 1,
+          opacity: 0.7,
         }}>
           {s.icon}
         </span>
@@ -149,6 +150,7 @@ export function Card({
         lineHeight: 1,
         zIndex: 1,
         transition: 'transform 0.2s cubic-bezier(0.16,1,0.3,1)',
+        filter: `drop-shadow(0 0 ${highlighted ? '8px' : '4px'} ${s.color}44)`,
       }}>
         {s.icon}
       </span>
@@ -166,7 +168,7 @@ export function Card({
       }}>
         <span style={{
           fontFamily: 'var(--font-display)',
-          fontWeight: 800,
+          fontWeight: 700,
           fontSize: numSize,
           color: s.color,
           lineHeight: 1,
@@ -178,6 +180,7 @@ export function Card({
           color: s.color,
           lineHeight: 1,
           marginTop: 1,
+          opacity: 0.7,
         }}>
           {s.icon}
         </span>
@@ -205,23 +208,32 @@ export function CardBack({ size = 'md', animated = false, delay = 0 }: CardBackP
       style={{
         width: dims.w,
         height: dims.h,
-        background: 'var(--surface-1)',
-        border: '1px solid var(--surface-3)',
+        background: `
+          linear-gradient(135deg, var(--surface-3) 25%, transparent 25%) -8px 0,
+          linear-gradient(225deg, var(--surface-3) 25%, transparent 25%) -8px 0,
+          linear-gradient(315deg, var(--surface-3) 25%, transparent 25%),
+          linear-gradient(45deg, var(--surface-3) 25%, transparent 25%)
+        `,
+        backgroundColor: 'var(--surface-2)',
+        backgroundSize: '16px 16px',
+        border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: 8,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
         transition: 'transform 0.2s cubic-bezier(0.16,1,0.3,1), opacity 0.2s',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
         ...(animated ? { animationDelay: `${delay}s` } : {}),
       }}
     >
       <span style={{
         fontFamily: 'var(--font-display)',
-        fontWeight: 900,
-        fontSize: size === 'sm' ? 16 : 20,
-        color: 'var(--text-muted)',
+        fontWeight: 700,
+        fontSize: size === 'sm' ? 14 : 18,
+        color: 'var(--accent)',
         letterSpacing: '0.05em',
+        opacity: 0.6,
       }}>
         W
       </span>

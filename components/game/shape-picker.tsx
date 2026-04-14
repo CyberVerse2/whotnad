@@ -14,18 +14,18 @@ export function ShapePicker({ onSelect }: ShapePickerProps) {
     <div className="animate-fade-in" style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0,0,0,0.4)',
+      background: 'rgba(0,0,0,0.7)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 50,
     }}>
       <div className="animate-scale-in" style={{
-        background: '#fff',
-        border: '1px solid var(--surface-3)',
+        background: 'var(--surface-1)',
+        border: '1px solid rgba(255,255,255,0.08)',
         borderRadius: 12,
         padding: 24,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
       }}>
         <h3 className="font-display" style={{
           fontSize: 16,

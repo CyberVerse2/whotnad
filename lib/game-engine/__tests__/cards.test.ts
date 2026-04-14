@@ -97,7 +97,7 @@ describe('isSpecialCard', () => {
   it('identifies special cards', () => {
     expect(isSpecialCard({ id: 0, shape: 'circle', number: 1 })).toBe(true);  // Hold On
     expect(isSpecialCard({ id: 0, shape: 'circle', number: 2 })).toBe(true);  // Pick Two
-    expect(isSpecialCard({ id: 0, shape: 'circle', number: 5 })).toBe(true);  // Pick Three
+    expect(isSpecialCard({ id: 0, shape: 'circle', number: 5 })).toBe(false);  // 5 is not special
     expect(isSpecialCard({ id: 0, shape: 'circle', number: 8 })).toBe(true);  // Suspension
     expect(isSpecialCard({ id: 0, shape: 'circle', number: 14 })).toBe(true); // General Market
     expect(isSpecialCard({ id: 0, shape: 'whot', number: 20 })).toBe(true);   // Whot!

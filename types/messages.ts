@@ -6,7 +6,6 @@ export type ClientMessage =
   | { type: 'LEAVE_QUEUE' }
   | { type: 'PLAY_CARD'; cardId: number; chosenShape?: Shape }
   | { type: 'DRAW_CARD' }
-  | { type: 'DECLARE_LAST_CARD' }
   | { type: 'CHOOSE_SHAPE'; shape: Shape };
 
 // Server → Client messages
@@ -14,10 +13,10 @@ export type ServerMessage =
   | { type: 'QUEUE_JOINED'; position: number }
   | { type: 'QUEUE_LEFT' }
   | { type: 'MATCH_FOUND'; matchId: string; opponentId: string }
-  | { type: 'GAME_STATE'; state: PlayerGameView }
-  | { type: 'TURN_RESULT'; state: PlayerGameView; lastAction: string }
+  | { type: 'GAME_STATE'; state: PlayerGameView; lastAgentThinkMs?: number | null; lastAgentThought?: string | null }
+  | { type: 'TURN_RESULT'; state: PlayerGameView; lastAction: string; lastAgentThinkMs?: number | null; lastAgentThought?: string | null }
   | { type: 'INVALID_MOVE'; reason: string }
-  | { type: 'GAME_OVER'; state: PlayerGameView; winner: string; points: PointsSummary }
+  | { type: 'GAME_OVER'; state: PlayerGameView; winner: string; points: PointsSummary; lastAgentThinkMs?: number | null; lastAgentThought?: string | null }
   | { type: 'OPPONENT_DISCONNECTED'; timeout: number }
   | { type: 'OPPONENT_RECONNECTED' }
   | { type: 'DEPOSIT_REQUIRED'; poolWalletAddress: string; amount: string }
@@ -36,7 +35,6 @@ export interface PlayerGameView {
   pendingDrawType: 2 | null;
   currentPlayerId: string;
   isMyTurn: boolean;
-  lastCardDeclared: boolean;
   turnCount: number;
   status: GameStatus;
   winner: string | null;

@@ -10,8 +10,7 @@ export interface Card {
 
 export type PlayerAction =
   | { type: 'play'; cardId: number; chosenShape?: Shape }
-  | { type: 'draw' }
-  | { type: 'declare_last_card' };
+  | { type: 'draw' };
 
 export type GameStatus = 'waiting' | 'active' | 'finished';
 
@@ -25,7 +24,6 @@ export interface GameState {
   activeShape: Shape | null; // set by Whot card
   pendingDraws: number; // stacked Pick Two/Three
   pendingDrawType: 2 | null; // which card caused pending draws
-  lastCardDeclared: Record<string, boolean>;
   turnCount: number;
   status: GameStatus;
   winner: string | null;

@@ -7,13 +7,15 @@ import { getPlayableCards } from '@/lib/game-engine/rules';
 import Link from 'next/link';
 import { Card, CardBack, SHAPE_STYLES } from './card';
 import { ShapePicker } from './shape-picker';
-import { LastCardButton } from './last-card-button';
+import { EffectsOverlay, type EffectsOverlayHandle } from './effects-overlay';
+import { GojoAvatar } from './gojo-avatar';
+import { ComboMeter } from './combo-meter';
+import { useGameEffects } from '@/hooks/use-game-effects';
 import {
   soundCardPlay,
   soundCardDraw,
   soundOpponentPlay,
   soundYourTurn,
-  soundLastCard,
   soundError,
   soundPickStack,
 } from '@/lib/sounds';
@@ -23,7 +25,6 @@ interface BoardProps {
   userId: string;
   onPlayCard: (cardId: number, chosenShape?: Shape) => void;
   onDraw: () => void;
-  onDeclareLastCard: () => void;
   onLeave: () => void;
   onForfeit: () => void;
   forfeiting: boolean;
@@ -37,7 +38,6 @@ export function Board({
   userId,
   onPlayCard,
   onDraw,
-  onDeclareLastCard,
   onLeave,
   onForfeit,
   forfeiting,
@@ -57,6 +57,25 @@ export function Board({
   const prevIsMyTurnRef = useRef(gameState.isMyTurn);
   const opponentSectionRef = useRef<HTMLDivElement>(null);
   const topCardRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const effectsRef = useRef<EffectsOverlayHandle>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const gojoAvatarRef = useRef<HTMLDivElement>(null);
+  const marketRef = useRef<HTMLButtonElement>(null);
+
+  const {
+    boardClassName,
+    overlayClassName,
+    gojoEyesActive,
+    marketUrgent,
+    comboCount,
+    onCardPlayed,
+  } = useGameEffects(
+    gameState,
+    userId,
+    effectsRef.current?.engine ?? null,
+    { boardRef, overlayRef, gojoAvatarRef, topCardRef, marketRef }
+  );
 
   // Detect when opponent finishes their turn → it becomes our turn
   useEffect(() => {
@@ -108,7 +127,7 @@ export function Board({
   const playableCardIds = playableCards.map((c) => c.id);
 
   const handlePlayCard = useCallback(
-    (cardId: number) => {
+    (cardId: number, cardEl?: HTMLElement | null) => {
       const card = gameState.myHand.find((c) => c.id === cardId);
       if (!card) return;
       if (card.shape === 'whot') {
@@ -121,9 +140,11 @@ export function Board({
       if (card.number === 2) {
         setTimeout(() => soundPickStack(), 100);
       }
+      // Particle trail from card to top card
+      if (cardEl) onCardPlayed(cardEl);
       onPlayCard(cardId);
     },
-    [gameState.myHand, onPlayCard]
+    [gameState.myHand, onPlayCard, onCardPlayed]
   );
 
   const handleShapeSelect = useCallback(
@@ -137,30 +158,24 @@ export function Board({
     [pendingWhotCardId, onPlayCard]
   );
 
-  const canDraw =
-    gameState.isMyTurn &&
-    (playableCards.length === 0 || gameState.pendingDraws > 0);
+  const canDraw = gameState.isMyTurn;
   const drawHint = !gameState.isMyTurn
     ? "Wait for your turn"
     : gameState.pendingDraws > 0
       ? `Draw ${gameState.pendingDraws} card${gameState.pendingDraws === 1 ? '' : 's'} or stack a ${gameState.pendingDrawType}`
-      : playableCards.length > 0
-        ? 'Play a valid card before drawing from the market'
-        : 'Draw from the market';
-
-  const showLastCardButton =
-    gameState.isMyTurn &&
-    gameState.myHand.length === 2 &&
-    !gameState.lastCardDeclared;
+      : 'Draw from the market';
 
   return (
-    <div className="felt-texture" style={{
+    <div ref={boardRef} className={`felt-texture ${boardClassName}`} style={{
       display: 'flex',
       flexDirection: 'column',
       minHeight: '100vh',
-      padding: '16px',
-      gap: 16,
+      padding: '12px',
+      gap: 10,
+      transition: 'background-color 1s ease',
     }}>
+      <EffectsOverlay ref={effectsRef} overlayClassName={overlayClassName} />
+
       {/* ── Header ── */}
       <nav style={{
         display: 'flex',
@@ -201,29 +216,29 @@ export function Board({
         </Link>
       </nav>
 
+      {/* Kente-inspired divider */}
+      <div className="kente-divider" style={{ borderRadius: 2, opacity: 0.5 }} />
+
       {/* ── Section 1: Opponent ── */}
       <section ref={opponentSectionRef} style={{
         background: 'var(--surface-1)',
         borderRadius: 10,
-        padding: '16px 20px',
+        padding: '12px 16px',
+        border: '1px solid rgba(255,255,255,0.04)',
       }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 12,
+          marginBottom: 8,
+          flexWrap: 'wrap',
+          gap: 8,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img
-              src="/gojo.jpg"
-              alt="Satoru Gojo"
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '2px solid var(--accent)',
-              }}
+          <div ref={gojoAvatarRef} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <GojoAvatar
+              size={28}
+              isThinking={!gameState.isMyTurn && gameState.status === 'active'}
+              eyesActive={gojoEyesActive}
             />
             <span className="font-display" style={{
               fontSize: 13,
@@ -299,10 +314,15 @@ export function Board({
         <div style={{
           display: 'flex',
           gap: 6,
-          flexWrap: 'wrap',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          paddingBottom: 4,
         }}>
           {Array.from({ length: Math.min(gameState.opponentCardCount, 12) }).map((_, i) => (
-            <CardBack key={i} size="sm" animated delay={i * 0.04} />
+            <div key={i} style={{ flexShrink: 0 }}>
+              <CardBack size="sm" animated delay={i * 0.04} />
+            </div>
           ))}
           {gameState.opponentCardCount > 12 && (
             <span className="font-display" style={{
@@ -310,6 +330,7 @@ export function Board({
               color: 'var(--text-muted)',
               alignSelf: 'center',
               marginLeft: 4,
+              flexShrink: 0,
             }}>
               +{gameState.opponentCardCount - 12}
             </span>
@@ -321,13 +342,12 @@ export function Board({
       <section style={{
         background: 'var(--surface-1)',
         borderRadius: 10,
-        padding: '20px',
+        padding: '12px 16px',
+        border: '1px solid rgba(255,255,255,0.04)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 16,
-        flex: 1,
-        minHeight: 160,
+        gap: 12,
       }}>
         {/* Market (draw pile) */}
         <div>
@@ -342,9 +362,10 @@ export function Board({
             MARKET
           </span>
           <button
+            ref={marketRef}
             onClick={() => { soundCardDraw(); onDraw(); }}
             disabled={!canDraw}
-            className={canDraw ? 'animate-pulse-glow' : ''}
+            className={marketUrgent && canDraw ? 'animate-market-urgent' : canDraw ? 'animate-pulse-glow' : ''}
             aria-label={drawHint}
             title={drawHint}
             style={{
@@ -361,7 +382,7 @@ export function Board({
             onMouseDown={(e) => canDraw && (e.currentTarget.style.transform = 'translateY(0) scale(0.96)')}
             onMouseUp={(e) => canDraw && (e.currentTarget.style.transform = 'translateY(-4px) scale(1.05)')}
           >
-            <CardBack size="lg" />
+            <CardBack size="md" />
             {gameState.pendingDraws > 0 && (
               <div style={{
                 position: 'absolute',
@@ -384,12 +405,13 @@ export function Board({
             )}
           </button>
           <span className="font-display" style={{
-            fontSize: 11,
+            fontSize: 9,
             fontWeight: 600,
             color: canDraw ? 'var(--text-muted)' : 'var(--danger)',
             letterSpacing: '0.05em',
             display: 'block',
-            marginTop: 6,
+            marginTop: 4,
+            maxWidth: 80,
           }}>
             {canDraw ? `${gameState.deckSize} LEFT` : drawHint.toUpperCase()}
           </span>
@@ -400,11 +422,11 @@ export function Board({
           <p
             className={`font-display ${gameState.isMyTurn ? 'animate-pulse-glow' : ''}`}
             style={{
-              fontSize: 20,
+              fontSize: 'clamp(14px, 4vw, 20px)',
               fontWeight: 900,
               color: gameState.isMyTurn ? 'var(--accent)' : 'var(--text-muted)',
               letterSpacing: '0.05em',
-              marginBottom: 6,
+              marginBottom: 4,
               borderRadius: 6,
               padding: '4px 12px',
               display: 'inline-block',
@@ -455,6 +477,12 @@ export function Board({
             </p>
           )}
 
+          {comboCount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+              <ComboMeter count={comboCount} />
+            </div>
+          )}
+
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -497,7 +525,7 @@ export function Board({
               key={`${gameState.topCard.id}-${gameState.turnCount}`}
               className={opponentJustPlayed ? 'animate-card-slam' : 'animate-scale-in'}
             >
-              <Card card={gameState.topCard} size="lg" disabled />
+              <Card card={gameState.topCard} size="md" disabled />
             </div>
           </div>
         </div>
@@ -507,7 +535,8 @@ export function Board({
       <section style={{
         background: 'var(--surface-1)',
         borderRadius: 10,
-        padding: '16px 20px',
+        padding: '12px 16px 16px',
+        border: '1px solid rgba(255,255,255,0.04)',
       }}>
         <span className="font-display" style={{
           fontSize: 13,
@@ -515,14 +544,18 @@ export function Board({
           color: 'var(--text-secondary)',
           letterSpacing: '0.06em',
           display: 'block',
-          marginBottom: 12,
+          marginBottom: 8,
         }}>
           YOUR HAND — {gameState.myHand.length} CARDS
         </span>
         <div style={{
           display: 'flex',
           gap: 6,
-          flexWrap: 'wrap',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          paddingTop: 12,
+          paddingBottom: 6,
         }}>
           {gameState.myHand.map((card, i) => {
             const isPlayable = gameState.isMyTurn && playableCardIds.includes(card.id);
@@ -530,13 +563,16 @@ export function Board({
               <div
                 key={card.id}
                 className="animate-card-deal"
-                style={{ animationDelay: `${i * 0.05}s` }}
+                style={{ animationDelay: `${i * 0.05}s`, flexShrink: 0 }}
               >
                 <Card
                   card={card}
-                  onClick={() => isPlayable && handlePlayCard(card.id)}
+                  onClick={(e) => {
+                    if (!isPlayable) return;
+                    const el = (e as React.MouseEvent).currentTarget as HTMLElement;
+                    handlePlayCard(card.id, el);
+                  }}
                   disabled={!isPlayable}
-                  highlighted={isPlayable}
                 />
               </div>
             );
@@ -548,11 +584,6 @@ export function Board({
       {pendingWhotCardId !== null && (
         <ShapePicker onSelect={handleShapeSelect} />
       )}
-
-      <LastCardButton
-        onDeclare={() => { soundLastCard(); onDeclareLastCard(); }}
-        visible={showLastCardButton}
-      />
 
       {/* Flying card animation: opponent card → top card */}
       {flyingCard && (

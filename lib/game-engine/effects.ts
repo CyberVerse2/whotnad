@@ -19,8 +19,7 @@ export function applyCardEffect(
   const next = { ...state };
 
   switch (card.number) {
-    case 1: // Hold On — skip opponent
-      next.currentPlayerIndex = advancePlayer(next);
+    case 1: // Hold On — current player goes again (handled in state.ts)
       break;
 
     case 2: // Pick Two — stackable
@@ -28,8 +27,7 @@ export function applyCardEffect(
       next.pendingDrawType = 2;
       break;
 
-    case 8: // Suspension — skip opponent
-      next.currentPlayerIndex = advancePlayer(next);
+    case 8: // Suspension — current player goes again (handled in state.ts)
       break;
 
     case 14: { // General Market — opponent draws 1

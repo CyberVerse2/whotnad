@@ -62,8 +62,6 @@ function formatAction(action: GameLogEntry['action']): string {
       return action.chosenShape ? `played (${action.chosenShape})` : 'played';
     case 'draw':
       return 'drew';
-    case 'declare_last_card':
-      return 'LAST CARD!';
     default:
       return action.type;
   }
