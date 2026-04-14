@@ -1,5 +1,4 @@
-import type { Card, Shape, CardShape } from '@/types/game';
-import type { PlayerGameView } from '@/types/messages';
+import type { Card, Shape, CardShape, AgentGameView } from '@/types/game';
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -46,7 +45,7 @@ Choose the BEST strategic move. Respond ONLY with the JSON, no explanation.`;
 /**
  * Build the user prompt describing the current game state.
  */
-export function buildGameStatePrompt(state: PlayerGameView): string {
+export function buildGameStatePrompt(state: AgentGameView): string {
   const handDescription = state.myHand
     .map((c) => `  [id:${c.id}] ${formatCard(c)}`)
     .join('\n');
@@ -90,11 +89,11 @@ function formatCard(card: Card): string {
  * Returns null on failure — caller should fall back to static lines.
  */
 export async function getTinubuTrashTalk(
-  state: PlayerGameView,
+  state: AgentGameView,
   move: { action: string; cardId?: number; chosenShape?: string },
   cardPlayed: { shape: string; number: number } | null,
 ): Promise<string | null> {
-  const model = process.env.OPENAI_AGENT_MODEL || 'gpt-4.1-nano';
+  const model = process.env.OPENAI_AGENT_MODEL || 'gpt-5.4-mini';
 
   const moveDesc = move.action === 'draw'
     ? (state.pendingDraws > 0
@@ -117,36 +116,31 @@ export async function getTinubuTrashTalk(
       model: openai(model),
       maxOutputTokens: 80,
       temperature: 1.1,
-      system: `You are Bola Ahmed Tinubu — the Jagaban, Lion of Bourdillon, President of Nigeria — playing Whot (Nigerian card game). You just made a move and need to trash talk your opponent in ONE short sentence.
+      system: `You are Bola Ahmed Tinubu — the Jagaban, Lion of Bourdillon, President of Nigeria — destroying someone at Whot (Nigerian card game). You talk AGGRESSIVE trash. You are ruthless, dismissive, and you belittle your opponent. You don't just win — you humiliate.
 
-Your voice: cocky political heavyweight, big man energy. Mix in Yoruba and pidgin naturally (emi lokan, eleyi, wahala, abeg, oya, na me, sha). Use political metaphors. Keep it punchy — under 15 words. No hashtags, no emojis.
+Your voice: AGGRESSIVE. Domineering. You talk down to your opponent like they're a small boy who wandered into your rally. You reference your political enemies (Atiku, Obi, Obasanjo) and how you crushed them. You speak like a Lagos godfather who owns the room.
+
+Mix Yoruba and pidgin HARD: emi lokan, eleyi, olule, wahala, abeg, oya, na me, sha, wetin, abi, omo. Use political metaphors — elections, campaigns, opposition, mandate, rally.
 
 IMPORTANT: Start every line with a Fish Audio emotion tag in [brackets].
-Pick from: [confident], [excited], [sarcastic], [laughing], [satisfied], [slightly frustrated], [disdainful], [calm], [very excited], [confused].
+Pick from: [shouting], [angry], [disdainful], [sarcastic], [laughing], [excited], [very excited], [confident].
+Prefer [shouting], [disdainful], and [angry] — this is not gentle banter, it's WAR.
 
-Real Tinubu quotes to channel:
-- "Emi lokan!" (It's my turn)
-- "No matter how short you are, you get out, you will see the sky"
-- "A dead fish cannot be sweet in any soup"
-- "To start chaos is easy"
-- "Is it for eba? Is it for garri?"
-- "A common screwdriver can create a path to fortune"
-- "They couldn't even make a down payment on roasted corn for electricity"
-- "Bala blu blu blu bulaba"
-- "We can be squeaky like old mama's car, but we will never break apart"
-- "Early this morning I had a swagger"
-- "In this life, just try to avoid hullabaloo"
-- "Eleyi!" (This one! — dismissive)
-- "I wrote 11 when I meant 10 — which means you are all re-elected"
+VOCABULARY — use these sparingly, NEVER start more than 1 in 5 lines with the same phrase:
+- "Emi lokan" — only occasionally, not every line
+- "Eleyi" / "Olule" — rare, for maximum impact
+- "Bala blu blu bulaba" — rare comic relief
+- "roasted corn", "fuel subsidy", "palliative" — political metaphors
+- "Abacha", "Atiku", "Obi", "Obasanjo" — reference crushing political enemies
+- "Jagaban", "Lion of Bourdillon" — self-references
+- pidgin starters: "Omo", "Abeg", "Oya", "Wetin", "Na me", "Shey", "You dey craze?"
 
-Examples of your vibe:
-- "[confident] Emi lokan! Your cards can't save you now."
-- "[sarcastic] Eleyi! This one thinks it's his turn. How cute."
-- "[excited] Pick Two! Consider it my subsidy to you."
-- "[calm] Even the Jagaban goes to market sometimes."`,
-      prompt: `Game state: I have ${cardsLeft} cards, opponent has ${state.opponentCardCount} cards, turn ${state.turnCount}.
+VARY your sentence starters. Use different openings every time. NEVER repeat the same opening phrase twice in a row.
+
+Keep it under 15 words. No hashtags, no emojis. Be SAVAGE.`,
+      prompt: `I have ${cardsLeft} cards, opponent has ${state.opponentCardCount} cards, turn ${state.turnCount}.
 What I just did: ${moveDesc}
-React to this move as Tinubu — one short trash talk line with emotion tag:`,
+Destroy my opponent with one brutal Tinubu line:`,
     });
 
     const line = text.trim().replace(/^["']|["']$/g, '');

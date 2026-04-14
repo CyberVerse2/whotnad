@@ -18,6 +18,9 @@ import {
   soundYourTurn,
   soundError,
   soundPickStack,
+  isMuted,
+  setMuted,
+  initMuteState,
 } from '@/lib/sounds';
 
 interface BoardProps {
@@ -53,8 +56,15 @@ export function Board({
     targetY: number;
     key: number;
   } | null>(null);
+  const [voiceMuted, setVoiceMuted] = useState(false);
   const prevTurnRef = useRef(gameState.turnCount);
   const prevIsMyTurnRef = useRef(gameState.isMyTurn);
+
+  // Init mute state from localStorage
+  useEffect(() => {
+    initMuteState();
+    setVoiceMuted(isMuted());
+  }, []);
   const opponentSectionRef = useRef<HTMLDivElement>(null);
   const topCardRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -248,6 +258,27 @@ export function Board({
             }}>
               TINUBU — {gameState.opponentCardCount} CARDS
             </span>
+            <button
+              onClick={() => {
+                const next = !voiceMuted;
+                setVoiceMuted(next);
+                setMuted(next);
+              }}
+              title={voiceMuted ? 'Unmute Tinubu' : 'Mute Tinubu'}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 16,
+                padding: '2px 4px',
+                opacity: 0.6,
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+            >
+              {voiceMuted ? '\uD83D\uDD07' : '\uD83D\uDD0A'}
+            </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
             {!gameState.isMyTurn && gameState.status === 'active' && !lastAgentThought && (
@@ -260,21 +291,11 @@ export function Board({
               </span>
             )}
             {lastAgentThought && (
-              <span
+              <TypewriterText
                 key={gameState.turnCount}
+                text={lastAgentThought.replace(/\[[\w\s]+\]\s*/g, '')}
                 className={opponentJustPlayed ? 'animate-slide-down' : ''}
-                style={{
-                  fontSize: 11,
-                  color: 'var(--text-secondary)',
-                  fontStyle: 'italic',
-                  maxWidth: 320,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {lastAgentThought}
-              </span>
+              />
             )}
             <button
               onClick={() => {
@@ -382,7 +403,50 @@ export function Board({
             onMouseDown={(e) => canDraw && (e.currentTarget.style.transform = 'translateY(0) scale(0.96)')}
             onMouseUp={(e) => canDraw && (e.currentTarget.style.transform = 'translateY(-4px) scale(1.05)')}
           >
-            <CardBack size="md" />
+            {/* Stacked card pile — shows depth based on deck size */}
+            <div style={{ position: 'relative', width: 72, height: 108 }}>
+              {/* Bottom cards in the stack (offset shadows) */}
+              {gameState.deckSize > 10 && (
+                <div style={{
+                  position: 'absolute',
+                  top: -3,
+                  left: 2,
+                  width: 72,
+                  height: 108,
+                  background: 'var(--surface-1)',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  borderRadius: 8,
+                }} />
+              )}
+              {gameState.deckSize > 5 && (
+                <div style={{
+                  position: 'absolute',
+                  top: -2,
+                  left: 1,
+                  width: 72,
+                  height: 108,
+                  background: 'var(--surface-2)',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  borderRadius: 8,
+                }} />
+              )}
+              {gameState.deckSize > 1 && (
+                <div style={{
+                  position: 'absolute',
+                  top: -1,
+                  left: 0.5,
+                  width: 72,
+                  height: 108,
+                  background: 'var(--surface-2)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 8,
+                }} />
+              )}
+              {/* Top card */}
+              <div style={{ position: 'relative' }}>
+                <CardBack size="md" />
+              </div>
+            </div>
             {gameState.pendingDraws > 0 && (
               <div style={{
                 position: 'absolute',
@@ -399,6 +463,7 @@ export function Board({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                zIndex: 2,
               }}>
                 +{gameState.pendingDraws}
               </div>
@@ -471,7 +536,7 @@ export function Board({
               marginTop: 6,
             }}>
               {gameState.isMyTurn
-                ? `YOU MUST DRAW ${gameState.pendingDraws} OR PLAY A ${gameState.pendingDrawType}`
+                ? `YOU OWE +${gameState.pendingDraws} — DRAW OR STACK A ${gameState.pendingDrawType}`
                 : `TINUBU OWES +${gameState.pendingDraws} CARDS`
               }
             </p>
@@ -522,7 +587,7 @@ export function Board({
           </span>
           <div ref={topCardRef}>
             <div
-              key={`${gameState.topCard.id}-${gameState.turnCount}`}
+              key={`${gameState.topCard.id}`}
               className={opponentJustPlayed ? 'animate-card-slam' : 'animate-scale-in'}
             >
               <Card card={gameState.topCard} size="md" disabled />
@@ -603,5 +668,49 @@ export function Board({
         </div>
       )}
     </div>
+  );
+}
+
+// ── Typewriter text — reveals words one by one like speech ──
+
+function TypewriterText({ text, className }: { text: string; className?: string }) {
+  const words = text.split(' ');
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    setVisibleCount(0);
+    if (words.length === 0) return;
+
+    // ~120ms per word ≈ natural speaking pace
+    const msPerWord = 120;
+    let frame = 0;
+    const interval = setInterval(() => {
+      frame++;
+      if (frame >= words.length) {
+        clearInterval(interval);
+      }
+      setVisibleCount(frame + 1);
+    }, msPerWord);
+
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return (
+    <span
+      className={className}
+      style={{
+        fontSize: 11,
+        color: 'var(--text-secondary)',
+        fontStyle: 'italic',
+        maxWidth: 320,
+        display: 'inline-block',
+        minHeight: 16,
+      }}
+    >
+      {words.slice(0, visibleCount).join(' ')}
+      {visibleCount < words.length && (
+        <span style={{ opacity: 0.4 }}>|</span>
+      )}
+    </span>
   );
 }

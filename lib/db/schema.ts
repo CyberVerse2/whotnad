@@ -49,6 +49,7 @@ export const matches = pgTable('matches', {
   turnsTaken: integer('turns_taken'),
   lastAgentThought: text('last_agent_thought'),
   lastAgentThinkMs: integer('last_agent_think_ms'),
+  lastAgentVoiceLine: integer('last_agent_voice_line'),
   loserPenaltyScore: integer('loser_penalty_score'),
   winnerPoints: integer('winner_points'),
   loserPoints: integer('loser_points'),

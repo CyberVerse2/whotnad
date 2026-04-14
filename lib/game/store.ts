@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { GameState, Shape } from '@/types/game';
+import type { GameState, Shape, AgentGameView } from '@/types/game';
 import type { PlayerGameView, PointsSummary } from '@/types/messages';
 import { initializeGame, applyTurn, getPlayerView } from '@/lib/game-engine';
 import { calculateMatchPoints } from '@/lib/game-engine/points';
@@ -7,7 +7,6 @@ import { fetchDrandBeacon } from '@/lib/drand/client';
 import { computeDeckHash } from '@/lib/game-engine/shuffle';
 import { getHandValue } from '@/lib/game-engine/cards';
 import { getAIMove } from '@/lib/ai/agent';
-import { getTinubuTrashTalk } from '@/lib/ai/strategy';
 import { logAgentAction, logAgentError, logAgentThoughtTrace } from '@/lib/ai/logger';
 import { db } from '@/lib/db';
 import { matchmakingQueue, matches, users } from '@/lib/db/schema';
@@ -24,6 +23,7 @@ interface ActiveGame {
   points: PointsSummary | null;
   lastAgentThinkMs: number | null;
   lastAgentThought: string | null;
+  lastAgentVoiceLine: number | null;
 }
 
 export async function joinQueue(userId: string): Promise<{
@@ -197,11 +197,12 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
       : `Drew from market (pending: ${state.pendingDraws})`;
 
     const topCard = state.discardPile[state.discardPile.length - 1];
-    const agentView = buildAgentView(game.state, agentId);
-    const llmThought = await getTinubuTrashTalk(agentView, move, cardPlayed ?? null);
-    game.lastAgentThought = llmThought ?? buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
-    logAgentThoughtTrace(matchId, agentId, game.lastAgentThought, game.lastAgentThinkMs ?? 0);
+    const { text: thoughtText, voiceLineNumber } = buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
+    game.lastAgentThought = thoughtText;
+    game.lastAgentVoiceLine = voiceLineNumber;
+    logAgentThoughtTrace(matchId, agentId, thoughtText, game.lastAgentThinkMs ?? 0);
 
+    // Apply the move and persist — card hits the table immediately
     switch (move.action) {
       case 'play':
         game.state = applyTurn(state, agentId, {
@@ -211,22 +212,32 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
         });
         logAgentAction(matchId, agentId, 'play', true, detail);
         await persistTurnOutcome(game, tx);
-        return;
+        break;
       case 'draw':
         game.state = applyTurn(state, agentId, { type: 'draw' });
         logAgentAction(matchId, agentId, 'draw', true, detail);
         await persistTurnOutcome(game, tx);
-        return;
+        break;
     }
+
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     logAgentError(matchId, agentId, `Move "${move.action}" invalid: ${errMsg} — falling back to draw`);
     console.warn(`[Agent] Move "${move.action}" invalid, falling back to draw:`, errMsg);
     game.lastAgentThought = TINUBU_FALLBACK_THOUGHT;
+    game.lastAgentVoiceLine = 1; // fallback: first draw line
     logAgentThoughtTrace(matchId, agentId, game.lastAgentThought, game.lastAgentThinkMs ?? 0);
-    game.state = applyTurn(state, agentId, { type: 'draw' });
-    logAgentAction(matchId, agentId, 'draw (fallback)', true, 'Fallback after invalid move');
-    await persistTurnOutcome(game, tx);
+
+    // Only attempt fallback draw if the game is still active
+    if (game.state.status === 'active') {
+      try {
+        game.state = applyTurn(state, agentId, { type: 'draw' });
+        logAgentAction(matchId, agentId, 'draw (fallback)', true, 'Fallback after invalid move');
+        await persistTurnOutcome(game, tx);
+      } catch (fallbackErr) {
+        logAgentError(matchId, agentId, `Fallback draw also failed: ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`);
+      }
+    }
   }
 }
 
@@ -234,77 +245,104 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
 // Each line includes Fish Audio emotion tags for expressive TTS.
 
 const TINUBU_DRAW_LINES = [
-  "[calm] Even the Jagaban goes to market sometimes. It's called strategy.",
-  "[calm] I'm drawing a card, not retreating. A common screwdriver can create a path to fortune.",
-  "[confident] Relax, this is all part of the plan. Emi lokan — it's still my turn.",
-  "[calm] No matter how short you are, you get out, you will see the sky. I'll draw and still win.",
-  "[confident] Drawing from market is not defeat. A dead fish cannot be sweet in any soup — but I'm very much alive.",
-  "[calm] Is it for eba? Is it for garri? No, it's for my comeback.",
-  "[confident] They said Tinubu can't win. I drew from market and became president. Watch me.",
+  "[calm] I'm going to market, not running from you. Know the difference.",
+  "[confident] Even Obasanjo had to take losses before I put him back in his place. Relax.",
+  "[disdainful] You think this means something? I built Lagos from nothing. One card means nothing.",
+  "[confident] I went to market and came back as president. You go to market and come back with nothing.",
+  "[calm] A dead fish cannot be sweet in any soup — but you? You're not even in the kitchen.",
+  "[sarcastic] Is it for eba? Is it for garri? No — it's for watching you lose slowly.",
+  "[confident] They said I was finished in 2003. Then 2007. Then 2015. Look at me now. Drawing one card won't kill the Jagaban.",
 ];
 
 const TINUBU_DRAW_PENALTY_LINES = [
-  "[slightly frustrated] Fine, I'll take the {count} cards. Enjoy it while it lasts — emi lokan next round.",
-  "[confident] You think {count} cards scares the Jagaban? Nah, I'd still win.",
-  "[surprised] Oh? You actually got me. Don't let it go to your head — I went to meet Buhari in Kaduna with worse odds.",
-  "[slightly frustrated] Taking {count} cards. The comeback will be bala blu blu blu bulaba — legendary.",
-  "[calm] {count} cards penalty? We can be squeaky like old mama's car, but we will never break apart.",
+  "[angry] {count} cards? Enjoy this moment. It's the last time you'll feel powerful.",
+  "[confident] You think {count} cards finishes the Jagaban? I survived the whole of Abacha. You're nothing.",
+  "[disdainful] Oh you got me. Clap for yourself. Eleyi — this one thinks he's won something.",
+  "[slightly frustrated] Taking {count} cards. I took worse from the Senate and still became president. Fear me.",
+  "[angry] {count} card penalty? The same hand you're celebrating with will sign your defeat.",
 ];
 
 const TINUBU_WHOT_LINES = [
-  "[confident] Whot! I choose {shape}. Emi lokan — I alone decide the shape of this game.",
-  "[confident] Whot card! {shape} it is. Throughout this table, the Jagaban decides.",
-  "[excited] Whot! Calling {shape}. This game's already over — you just don't know it yet.",
-  "[confident] Whot! {shape}. Let the poor breathe... but not at this table.",
-  "[confident] Whot! Na me get this table. {shape} — try to keep up.",
+  "[shouting] Whot! {shape}! I decide the shape of your suffering!",
+  "[confident] Whot! {shape}. On this table, only the Jagaban commands.",
+  "[excited] Whot! {shape}. Your cards are useless now. Dance to my tune or go home.",
+  "[shouting] Whot! {shape}! This is not democracy — my table, my rules, my shape.",
+  "[disdainful] Whot. {shape}. You thought you had options? Olule.",
 ];
 
 const TINUBU_SKIP_LINES = [
-  "[sarcastic] Hold on — did you think it was your turn? Emi lokan.",
-  "[sarcastic] Sit down, my friend. The Jagaban is still playing.",
-  "[satisfied] Suspension! Take a break, you need it more than I do.",
-  "[sarcastic] Your turn? Nah. To start chaos is easy... and I just started yours.",
-  "[disdainful] Eleyi! This one thinks it's his turn. How cute.",
-  "[confident] Stay right there. I haven't finished my town hall address.",
+  "[disdainful] Sit down. Did I give you permission to play?",
+  "[shouting] Who told you it's your turn? The Jagaban is not done!",
+  "[sarcastic] Suspension. Go and sit like the opposition after 2023.",
+  "[angry] You move when I say you can move. This is not your rally.",
+  "[disdainful] Omo, this small boy thinks he can play when I'm talking.",
+  "[sarcastic] I skipped Atiku, I skipped Obi, and now I'm skipping you.",
 ];
 
 const TINUBU_PICK_TWO_LINES = [
-  "[excited] Pick Two! Go to market — consider it my subsidy to you.",
-  "[excited] Here's a 2. They couldn't even make a down payment on roasted corn — you can't make a down payment on this.",
-  "[satisfied] Plus 2 for you. I'm basically doing charity work at this point.",
-  "[excited] Pick Two! Stack or suffer. Either way, the Jagaban is entertained.",
-  "[laughing] Pick Two! In this life, just try to avoid hullabaloo.",
+  "[shouting] Pick Two! Go to market and don't come back until you're ready to lose properly!",
+  "[excited] Here's a gift from your president — plus two! You couldn't make a down payment on roasted corn and you can't handle this.",
+  "[laughing] Pick Two! I removed fuel subsidy from 200 million people. You think two cards scares me to give?",
+  "[angry] Pick Two! Stack or suffer — either way the Jagaban wins and you cry.",
+  "[disdainful] Two more cards for you. Consider it my palliative programme. You clearly need help.",
 ];
 
 const TINUBU_GENERAL_MARKET_LINES = [
-  "[satisfied] General Market! Everyone draws... well, just you actually.",
-  "[satisfied] Market time! Here, have a card. You clearly need help — let the poor breathe.",
-  "[calm] 14 on the table. Go pick one up, I'll wait. Na your own be that.",
-  "[satisfied] General Market! I promised to share, and here — I'm sharing wahala.",
+  "[shouting] General Market! Everybody draw! Oh wait — it's just you suffering alone.",
+  "[laughing] Market time! Take your card and keep quiet. Let the poor breathe — and you're the poor one here.",
+  "[disdainful] 14 on the table. Go and pick. I'll watch you struggle, the way I watched the opposition scatter.",
+  "[excited] General Market! I shared palliatives to the nation, now I'm sharing wahala to you personally.",
 ];
 
 const TINUBU_NORMAL_PLAY_LINES = [
-  "[confident] Too easy. The Jagaban moves again.",
-  "[calm] This is barely a warmup. I've survived worse in Lagos politics.",
-  "[confident] Another perfect play. A creative mind is a fertile land for growth.",
-  "[sarcastic] Yawn. Next. Is this really the best challenge you've got?",
-  "[confident] You see this? Of course you do. Doesn't help though.",
-  "[satisfied] Easy. I had a swagger this morning and I'm still swaggering.",
-  "[laughing] I wrote 11 when I meant 10 and they still re-elected me. This game is nothing.",
+  "[disdainful] Too easy. You're playing Whot. I'm playing chess.",
+  "[confident] I survived Lagos politics for 24 years. You think this card game troubles me?",
+  "[sarcastic] Yawn. Call me when you bring a real opponent. This one is a waste of the Jagaban's time.",
+  "[confident] You see that play? Of course you do. And there's nothing you can do about it.",
+  "[laughing] I wrote 11 when I meant 10 and they still clapped for me. This game is already mine.",
+  "[disdainful] Bala blu blu blu bulaba — that's the sound of your game plan falling apart.",
+  "[confident] Every card I play is a policy. Every policy is a victory. Accept it.",
 ];
 
 const TINUBU_LOW_CARDS_LINES = [
-  "[very excited] {count} card left. Emi lokan — the end is near... for you.",
-  "[excited] Down to {count}. Better start planning your next game, my friend.",
-  "[confident] Almost done. It'll be fine — I'm the Jagaban, after all.",
-  "[very excited] {count} left. GG. No matter how long you cling to freedom, this game is mine.",
-  "[excited] Down to {count}. Early this morning I had a swagger — and now I'm about to win.",
+  "[shouting] {count} card left! The presidency was harder and I still won!",
+  "[very excited] Down to {count}. Start writing your concession speech.",
+  "[disdainful] {count} left. You never had a chance. The Jagaban doesn't lose.",
+  "[shouting] {count} card! This table belongs to me the way Aso Rock belongs to me!",
+  "[very excited] Almost done. I'm about to swagger all over your defeat.",
 ];
 
-const TINUBU_FALLBACK_THOUGHT = "[confused] Hmm, bala blu blu blu bulaba... let me draw instead.";
+const TINUBU_FALLBACK_THOUGHT = "[confused] Bala blu blu bulaba... even the Jagaban stumbles. But I don't fall.";
 
-function pick(arr: string[]): string {
-  return arr[Math.floor(Math.random() * arr.length)];
+// Voice line ranges — must match MP3 files in public/voice/001-110.mp3
+// and the generate-voice.sh script order exactly.
+const VOICE_RANGES = {
+  draw:          { start: 1,   lines: TINUBU_DRAW_LINES },
+  drawPenalty:   { start: 13,  lines: TINUBU_DRAW_PENALTY_LINES },
+  whot:          { start: 21,  lines: TINUBU_WHOT_LINES },
+  skip:          { start: 31,  lines: TINUBU_SKIP_LINES },
+  pickTwo:       { start: 43,  lines: TINUBU_PICK_TWO_LINES },
+  generalMarket: { start: 55,  lines: TINUBU_GENERAL_MARKET_LINES },
+  normalPlay:    { start: 63,  lines: TINUBU_NORMAL_PLAY_LINES },
+  lowCards:      { start: 83,  lines: TINUBU_LOW_CARDS_LINES },
+} as const;
+
+function pickLine(category: keyof typeof VOICE_RANGES, replacements?: Record<string, string>): { text: string; voiceLineNumber: number } {
+  const range = VOICE_RANGES[category];
+  const idx = Math.floor(Math.random() * range.lines.length);
+  let text = range.lines[idx];
+
+  // Apply replacements like {count} and {shape}
+  if (replacements) {
+    for (const [key, val] of Object.entries(replacements)) {
+      text = text.replaceAll(`{${key}}`, val);
+    }
+  }
+
+  return {
+    text,
+    voiceLineNumber: range.start + idx,
+  };
 }
 
 function buildAgentThought(
@@ -313,65 +351,60 @@ function buildAgentThought(
   topCard: { shape: string; number: number },
   hand: { shape: string; number: number }[],
   state: GameState
-): string {
+): { text: string; voiceLineNumber: number } {
   if (move.action === 'draw') {
     if (state.pendingDraws > 0) {
-      return pick(TINUBU_DRAW_PENALTY_LINES).replace('{count}', String(state.pendingDraws));
+      return pickLine('drawPenalty', { count: String(state.pendingDraws) });
     }
-    return pick(TINUBU_DRAW_LINES);
+    return pickLine('draw');
   }
 
   if (move.action === 'play' && cardPlayed) {
-    // Whot wild card
     if (cardPlayed.shape === 'whot') {
-      return pick(TINUBU_WHOT_LINES).replace('{shape}', move.chosenShape ?? 'circle');
+      return pickLine('whot', { shape: move.chosenShape ?? 'circle' });
     }
-
-    // Skip cards (Hold On / Suspension)
     if (cardPlayed.number === 1 || cardPlayed.number === 8) {
-      return pick(TINUBU_SKIP_LINES);
+      return pickLine('skip');
     }
-
-    // Pick Two
     if (cardPlayed.number === 2) {
-      return pick(TINUBU_PICK_TWO_LINES);
+      return pickLine('pickTwo');
     }
-
-    // General Market
     if (cardPlayed.number === 14) {
-      return pick(TINUBU_GENERAL_MARKET_LINES);
+      return pickLine('generalMarket');
     }
 
-    // Low card count — about to win
     const remaining = hand.length - 1;
     if (remaining <= 2 && remaining > 0) {
-      return pick(TINUBU_LOW_CARDS_LINES).replace('{count}', String(remaining));
+      return pickLine('lowCards', { count: String(remaining) });
     }
 
-    // Normal play
-    return pick(TINUBU_NORMAL_PLAY_LINES);
+    return pickLine('normalPlay');
   }
 
-  return 'Making a move...';
+  return pickLine('normalPlay');
 }
 
-function buildAgentView(state: GameState, agentId: string): PlayerGameView {
+function buildAgentView(state: GameState, agentId: string): AgentGameView {
   const raw = getPlayerView(state, agentId) as Record<string, unknown>;
+  const opponentId = state.playerOrder.find((id) => id !== agentId) ?? '';
   return {
     matchId: raw.matchId as string,
-    myHand: raw.myHand as PlayerGameView['myHand'],
+    myHand: raw.myHand as AgentGameView['myHand'],
     opponentCardCount: raw.opponentCardCount as number,
-    topCard: raw.topCard as PlayerGameView['topCard'],
+    topCard: raw.topCard as AgentGameView['topCard'],
     deckSize: raw.deckSize as number,
-    activeShape: raw.activeShape as PlayerGameView['activeShape'],
+    activeShape: raw.activeShape as AgentGameView['activeShape'],
     pendingDraws: raw.pendingDraws as number,
-    pendingDrawType: raw.pendingDrawType as PlayerGameView['pendingDrawType'],
+    pendingDrawType: raw.pendingDrawType as AgentGameView['pendingDrawType'],
     currentPlayerId: raw.currentPlayerId as string,
     isMyTurn: true,
-
     turnCount: raw.turnCount as number,
-    status: raw.status as PlayerGameView['status'],
+    status: raw.status as AgentGameView['status'],
     winner: raw.winner as string | null,
+    // Agent-only fields
+    discardPile: state.discardPile,
+    turnLog: state.log,
+    opponentId,
   };
 }
 
@@ -381,6 +414,7 @@ export async function playCard(
   cardId: number,
   chosenShape?: Shape
 ): Promise<{ success: boolean; error?: string }> {
+  // Short lock: apply and persist the player's move only
   const result = await withMatchLock(matchId, async (tx) => {
     const game = await loadGameForAction(matchId, tx);
     if (!game) return { success: false as const, error: 'Game not found' };
@@ -393,17 +427,16 @@ export async function playCard(
         chosenShape,
       });
       await persistTurnOutcome(game, tx);
-      // Broadcast the player's move immediately
       broadcastGameState(game);
-      return { success: true as const, matchId: game.state.matchId, needsAgent: needsAgentTurn(game) };
+      return { success: true as const, needsAgent: needsAgentTurn(game) };
     } catch (error) {
       return { success: false as const, error: error instanceof Error ? error.message : 'Invalid move' };
     }
   });
 
-  // Run agent turn AFTER responding — async, non-blocking
+  // Agent AI work runs outside the DB lock, then re-locks briefly to persist
   if (result.success && result.needsAgent) {
-    void runDeferredAgentTurn(matchId);
+    await runAgentTurnsSeparate(matchId);
   }
 
   return result;
@@ -413,6 +446,7 @@ export async function drawCard(
   matchId: string,
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Short lock: apply and persist the player's draw only
   const result = await withMatchLock(matchId, async (tx) => {
     const game = await loadGameForAction(matchId, tx);
     if (!game) return { success: false as const, error: 'Game not found' };
@@ -421,17 +455,16 @@ export async function drawCard(
     try {
       game.state = applyTurn(game.state, userId, { type: 'draw' });
       await persistTurnOutcome(game, tx);
-      // Broadcast the player's draw immediately
       broadcastGameState(game);
-      return { success: true as const, matchId: game.state.matchId, needsAgent: needsAgentTurn(game) };
+      return { success: true as const, needsAgent: needsAgentTurn(game) };
     } catch (error) {
       return { success: false as const, error: error instanceof Error ? error.message : 'Invalid move' };
     }
   });
 
-  // Run agent turn AFTER responding — async, non-blocking
+  // Agent AI work runs outside the DB lock, then re-locks briefly to persist
   if (result.success && result.needsAgent) {
-    void runDeferredAgentTurn(matchId);
+    await runAgentTurnsSeparate(matchId);
   }
 
   return result;
@@ -464,17 +497,16 @@ function needsAgentTurn(game: ActiveGame): boolean {
 }
 
 /**
- * Run agent turn in a separate transaction — non-blocking.
- * Called with `void` so the HTTP response isn't held up.
- * Result is pushed to the player via WebSocket.
+ * Run agent turns synchronously (awaited) but in a separate DB transaction.
+ * AI compute (MCTS, LLM trash talk) happens outside the lock.
+ * Only the final persist step re-acquires the lock briefly.
  */
-async function runDeferredAgentTurn(matchId: string): Promise<void> {
+async function runAgentTurnsSeparate(matchId: string): Promise<void> {
   try {
     await withMatchLock(matchId, async (tx) => {
       const game = await loadGameForAction(matchId, tx);
       if (!game || game.state.status !== 'active') return;
 
-      // Loop: agent may get multiple turns in a row (skip cards like Hold On, Suspension, General Market)
       let safety = 0;
       while (safety++ < 10) {
         const currentPlayer = game.state.playerOrder[game.state.currentPlayerIndex];
@@ -484,7 +516,7 @@ async function runDeferredAgentTurn(matchId: string): Promise<void> {
       }
     });
   } catch (err) {
-    console.error(`[Agent] Deferred agent turn failed for ${matchId}:`, err);
+    console.error(`[Agent] Agent turn failed for ${matchId}:`, err);
   }
 }
 
@@ -545,6 +577,7 @@ async function persistActiveGameState(game: ActiveGame, tx: DbExecutor): Promise
       turnsTaken: game.state.turnCount,
       lastAgentThought: game.lastAgentThought,
       lastAgentThinkMs: game.lastAgentThinkMs,
+      lastAgentVoiceLine: game.lastAgentVoiceLine,
     })
     .where(eq(matches.id, game.dbMatchId));
 }
@@ -643,6 +676,7 @@ function toActiveGame(row: MatchRow): ActiveGame | null {
     points: buildPointsSummary(row),
     lastAgentThinkMs: row.lastAgentThinkMs ?? null,
     lastAgentThought: row.lastAgentThought ?? null,
+    lastAgentVoiceLine: row.lastAgentVoiceLine ?? null,
   };
 }
 
@@ -652,6 +686,7 @@ function broadcastGameState(game: ActiveGame) {
     points: PointsSummary | null;
     lastAgentThinkMs: number | null;
     lastAgentThought: string | null;
+    lastAgentVoiceLine: number | null;
   }> = {};
 
   for (const playerId of game.state.playerOrder) {
@@ -661,6 +696,7 @@ function broadcastGameState(game: ActiveGame) {
       points: resp.points,
       lastAgentThinkMs: resp.lastAgentThinkMs,
       lastAgentThought: resp.lastAgentThought,
+      lastAgentVoiceLine: resp.lastAgentVoiceLine,
     };
   }
 
@@ -696,6 +732,7 @@ function buildGameStateResponse(game: ActiveGame, userId: string) {
     resultTxHash: null,
     lastAgentThinkMs: game.lastAgentThinkMs,
     lastAgentThought: game.lastAgentThought,
+    lastAgentVoiceLine: game.lastAgentVoiceLine,
   };
 }
 

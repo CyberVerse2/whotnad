@@ -9,6 +9,7 @@ export interface GameStateEvent {
     points: PointsSummary | null;
     lastAgentThinkMs: number | null;
     lastAgentThought: string | null;
+    lastAgentVoiceLine: number | null;
   }>;
 }
 

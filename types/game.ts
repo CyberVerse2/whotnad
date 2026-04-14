@@ -37,6 +37,30 @@ export interface GameLogEntry {
   timestamp: number;
 }
 
+/**
+ * Extended view for the AI agent — includes discard pile and turn log
+ * that aren't sent to browser clients.
+ */
+export interface AgentGameView {
+  matchId: string;
+  myHand: Card[];
+  opponentCardCount: number;
+  topCard: Card;
+  deckSize: number;
+  activeShape: Shape | null;
+  pendingDraws: number;
+  pendingDrawType: 2 | null;
+  currentPlayerId: string;
+  isMyTurn: boolean;
+  turnCount: number;
+  status: GameStatus;
+  winner: string | null;
+  // Agent-only fields
+  discardPile: Card[];
+  turnLog: GameLogEntry[];
+  opponentId: string;
+}
+
 export interface MatchPoints {
   winnerId: string;
   loserId: string;

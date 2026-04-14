@@ -27,6 +27,7 @@ interface GameStatePayload {
   resultTxHash: string | null;
   lastAgentThinkMs: number | null;
   lastAgentThought: string | null;
+  lastAgentVoiceLine: string | null;
 }
 
 export function useGame(userId: string | null, initialMatchId?: string | null) {
@@ -65,11 +66,12 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   const lastSpokenThoughtRef = useRef<string | null>(null);
 
   const applyGameStatePayload = useCallback((data: GameStatePayload) => {
-    // Speak Tinubu's line if it's a new thought
+    // Play Tinubu's voice line if it's a new thought
     const thought = data.lastAgentThought ?? null;
-    if (thought && thought !== lastSpokenThoughtRef.current) {
+    const voiceLine = data.lastAgentVoiceLine ?? null;
+    if (thought && thought !== lastSpokenThoughtRef.current && voiceLine) {
       lastSpokenThoughtRef.current = thought;
-      void playTinubuVoice(thought);
+      playTinubuVoice(voiceLine);
     }
 
     if (data.view.status === 'finished') {
@@ -133,9 +135,10 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
 
       case 'GAME_STATE': {
         const thought = msg.lastAgentThought ?? null;
-        if (thought && thought !== lastSpokenThoughtRef.current) {
+        const voiceLine = msg.lastAgentVoiceLine ?? null;
+        if (thought && thought !== lastSpokenThoughtRef.current && voiceLine) {
           lastSpokenThoughtRef.current = thought;
-          void playTinubuVoice(thought);
+          playTinubuVoice(voiceLine);
         }
         setState((s) => ({
           ...s,
@@ -150,9 +153,10 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
 
       case 'GAME_OVER': {
         const thought = msg.lastAgentThought ?? null;
-        if (thought && thought !== lastSpokenThoughtRef.current) {
+        const voiceLine = msg.lastAgentVoiceLine ?? null;
+        if (thought && thought !== lastSpokenThoughtRef.current && voiceLine) {
           lastSpokenThoughtRef.current = thought;
-          void playTinubuVoice(thought);
+          playTinubuVoice(voiceLine);
         }
         setState((s) => ({
           ...s,

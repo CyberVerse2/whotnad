@@ -13,10 +13,10 @@ export type ServerMessage =
   | { type: 'QUEUE_JOINED'; position: number }
   | { type: 'QUEUE_LEFT' }
   | { type: 'MATCH_FOUND'; matchId: string; opponentId: string }
-  | { type: 'GAME_STATE'; state: PlayerGameView; lastAgentThinkMs?: number | null; lastAgentThought?: string | null }
-  | { type: 'TURN_RESULT'; state: PlayerGameView; lastAction: string; lastAgentThinkMs?: number | null; lastAgentThought?: string | null }
+  | { type: 'GAME_STATE'; state: PlayerGameView; lastAgentThinkMs?: number | null; lastAgentThought?: string | null; lastAgentVoiceLine?: number | null }
+  | { type: 'TURN_RESULT'; state: PlayerGameView; lastAction: string; lastAgentThinkMs?: number | null; lastAgentThought?: string | null; lastAgentVoiceLine?: number | null }
   | { type: 'INVALID_MOVE'; reason: string }
-  | { type: 'GAME_OVER'; state: PlayerGameView; winner: string; points: PointsSummary; lastAgentThinkMs?: number | null; lastAgentThought?: string | null }
+  | { type: 'GAME_OVER'; state: PlayerGameView; winner: string; points: PointsSummary; lastAgentThinkMs?: number | null; lastAgentThought?: string | null; lastAgentVoiceLine?: number | null }
   | { type: 'OPPONENT_DISCONNECTED'; timeout: number }
   | { type: 'OPPONENT_RECONNECTED' }
   | { type: 'DEPOSIT_REQUIRED'; poolWalletAddress: string; amount: string }

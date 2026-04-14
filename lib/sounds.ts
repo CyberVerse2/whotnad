@@ -5,13 +5,33 @@
  * No sound files needed — everything is synthesized.
  */
 
+// ── Global mute control ──
+
+let _muted = false;
+
+export function isMuted(): boolean {
+  return _muted;
+}
+
+export function setMuted(muted: boolean): void {
+  _muted = muted;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('whot-muted', muted ? '1' : '0');
+  }
+}
+
+export function initMuteState(): void {
+  if (typeof window !== 'undefined') {
+    _muted = localStorage.getItem('whot-muted') === '1';
+  }
+}
+
 let audioCtx: AudioContext | null = null;
 
 function getCtx(): AudioContext {
   if (!audioCtx) {
     audioCtx = new AudioContext();
   }
-  // Resume if suspended (browsers require user gesture)
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
@@ -241,16 +261,19 @@ export function stopTensionDrone() {
   } catch { /* ignore */ }
 }
 
-// ── Tinubu TTS voice ──
+// ── Tinubu pre-rendered voice lines ──
+// 110 MP3 files in /voice/001.mp3 through /voice/110.mp3
+// Server picks the exact line number so text and audio always match.
 
 let currentTinubuAudio: HTMLAudioElement | null = null;
 
 /**
- * Speak a line as Tinubu using Fish Audio TTS.
- * Cancels any currently playing voice line.
+ * Play a specific pre-rendered Tinubu voice line by its number (1-110).
+ * The server picks the number to ensure text and audio match.
  */
-export async function playTinubuVoice(text: string): Promise<void> {
-  if (!text) return;
+export function playTinubuVoice(lineNumber: number): void {
+  if (_muted) return;
+  if (lineNumber < 1 || lineNumber > 110) return;
 
   // Stop any currently playing line
   if (currentTinubuAudio) {
@@ -259,27 +282,19 @@ export async function playTinubuVoice(text: string): Promise<void> {
   }
 
   try {
-    const res = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-
-    if (!res.ok) return;
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
+    const padded = String(lineNumber).padStart(3, '0');
+    const audio = new Audio(`/voice/${padded}.mp3`);
     audio.volume = 0.7;
     currentTinubuAudio = audio;
 
     audio.onended = () => {
-      URL.revokeObjectURL(url);
       if (currentTinubuAudio === audio) currentTinubuAudio = null;
     };
 
-    await audio.play();
+    audio.play().catch(() => {
+      // Audio not available — silent fail
+    });
   } catch {
-    // TTS not available — silent fail
+    // Audio not available
   }
 }

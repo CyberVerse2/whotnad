@@ -126,12 +126,14 @@ function handleGameState(event: GameStateEvent) {
           points: payload.points!,
           lastAgentThinkMs: payload.lastAgentThinkMs,
           lastAgentThought: payload.lastAgentThought,
+          lastAgentVoiceLine: payload.lastAgentVoiceLine,
         }
       : {
           type: 'GAME_STATE',
           state: payload.view,
           lastAgentThinkMs: payload.lastAgentThinkMs,
           lastAgentThought: payload.lastAgentThought,
+          lastAgentVoiceLine: payload.lastAgentVoiceLine,
         };
     sendToUser(userId, msg);
   }

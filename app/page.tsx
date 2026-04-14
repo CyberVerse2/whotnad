@@ -19,15 +19,15 @@ export default function Home() {
               color: 'var(--text-primary)',
               lineHeight: 0.9,
             }}>
-            PLAY WHOT
+            BEAT THE
             <br />
-            <span style={{ color: 'var(--gold-base)' }}>WIN BIG</span>
+            <span style={{ color: 'var(--gold-base)' }}>JAGABAN</span>
           </h1>
 
           <p className="font-display text-lg max-w-lg mx-auto mb-10 leading-relaxed"
             style={{ color: 'var(--text-secondary)', textTransform: 'none', lineHeight: 1.6, letterSpacing: '0.01em' }}>
-            Nigeria&apos;s card game, played for real stakes.
-            1v1 matches. Weekly seasons. AI opponents that play to win.
+            Tinubu thinks he&apos;s unbeatable at Whot. Prove him wrong.
+            He trash talks, he strategizes, and he plays to humiliate you.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -38,7 +38,7 @@ export default function Home() {
                 color: '#fff',
                 letterSpacing: '0.05em',
               }}>
-              PLAY TINUBU
+              CHALLENGE TINUBU
             </Link>
             <Link href="#rules"
               className="font-display text-sm font-medium px-6 py-4 transition-colors"
@@ -52,11 +52,11 @@ export default function Home() {
         <div className="mt-20 w-full max-w-2xl animate-slide-up stagger-2">
           <div className="flex items-center justify-between px-6 py-4 rounded"
             style={{ background: 'var(--surface-2)' }}>
-            <StakeStat label="MATCHES" value="1v1" />
+            <StakeStat label="OPPONENT" value="TINUBU" />
             <div className="w-px h-8" style={{ background: 'var(--surface-3)' }} />
-            <StakeStat label="SEASONS" value="WEEKLY" accent />
+            <StakeStat label="VOICE" value="LIVE" accent />
             <div className="w-px h-8" style={{ background: 'var(--surface-3)' }} />
-            <StakeStat label="AI" value="TINUBU" />
+            <StakeStat label="DIFFICULTY" value="BRUTAL" />
           </div>
         </div>
 
@@ -78,14 +78,14 @@ export default function Home() {
           <p className="font-display mt-6 text-sm leading-relaxed max-w-md"
             style={{ color: 'var(--text-muted)', textTransform: 'none', lineHeight: 1.6, letterSpacing: '0.01em' }}>
             Match cards by shape or number. First to empty your hand wins.
-            Last Card rule: declare with 2 cards left, or draw 2 as penalty.
+            Tinubu plays with a 6-layer AI brain — he reads your moves, tracks your cards, and plans 10 steps ahead.
           </p>
         </section>
       </main>
 
       <footer className="font-display text-center py-6 text-xs"
         style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--surface-2)', textTransform: 'none', letterSpacing: '0.02em' }}>
-        Randomness by Drand. Fair play guaranteed.
+        Emi Lokan. Built by <a href="https://cyberverse.studio" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-base)', textDecoration: 'underline' }}>cyberverse.studio</a>.
       </footer>
     </div>
   );

@@ -1,195 +1,97 @@
-import type { Shape, Card } from '@/types/game';
-import type { PlayerGameView } from '@/types/messages';
+/**
+ * Tinubu's brain — 6-layer AI strategy engine.
+ *
+ * Layer 1: Game state representation with Bayesian card probabilities
+ * Layer 2: Dynamic card valuation (connectivity, suit concentration, context)
+ * Layer 3: MCTS with determinization (20 samples × 400 iterations)
+ * Layer 4: Opponent modeling (hand tracking, suit preferences, pick inference)
+ * Layer 5: Special card doctrine (override rules for 1, 2, 14, 20)
+ * Layer 6: Endgame precision (exhaustive search at ≤4 cards)
+ */
+
+import type { Card, Shape, AgentGameView } from '@/types/game';
+import type { AIMove, OpponentModel } from './engine/types';
+import { buildAIState } from './engine/state-tracker';
+import { buildOpponentModel } from './engine/opponent-model';
+import { getBestShape } from './engine/card-valuation';
+import { mctsSelectMove } from './engine/mcts';
+import { endgameSelectMove } from './engine/endgame';
 import { getPlayableCards } from '@/lib/game-engine/rules';
 
-interface AIMove {
-  action: 'play' | 'draw';
-  cardId?: number;
-  chosenShape?: Shape;
-}
+export type { AIMove };
 
 const SHAPES: Shape[] = ['circle', 'triangle', 'cross', 'square', 'star'];
 
 /**
- * Tinubu's brain — a scoring-based strategy engine.
- * Evaluates every legal move and picks the highest-scoring one.
- * Instant, deterministic, and ruthlessly effective.
+ * Main entry point: select the best move given the current game state.
+ * Dispatches to MCTS (mid-game) or exhaustive search (endgame).
  */
-export async function getAIMove(state: PlayerGameView): Promise<AIMove> {
-  const playable = getPlayableCards(
-    state.myHand,
-    state.topCard,
-    state.activeShape,
-    state.pendingDraws,
-    state.pendingDrawType
+export async function getAIMove(view: AgentGameView): Promise<AIMove> {
+  const aiState = buildAIState(view);
+  const opponentModel = buildOpponentModel(
+    view.turnLog,
+    view.discardPile,
+    view.myHand,
+    view.opponentId,
+    view.opponentCardCount,
   );
 
-  // Must draw — no cards to play
+  // Get all legal moves
+  const playable = getPlayableCards(
+    aiState.hand,
+    aiState.topCard,
+    aiState.calledSuit,
+    aiState.pendingDraws,
+    aiState.pendingDrawType,
+  );
+
+  // Must draw — no playable cards
   if (playable.length === 0) {
     return { action: 'draw' };
   }
 
-  // Forced draw scenario — can only stack or draw
-  if (state.pendingDraws > 0) {
-    const stackable = playable.filter(c => c.number === state.pendingDrawType);
+  // Forced draw: pending draws with no stackable cards
+  if (aiState.pendingDraws > 0) {
+    const stackable = playable.filter((c) => c.number === aiState.pendingDrawType);
     if (stackable.length === 0) {
       return { action: 'draw' };
     }
-    // Stack a Pick Two — always stack when possible
-    return { action: 'play', cardId: stackable[0].id };
+    // Can stack — these are the only legal plays
+    if (stackable.length === 1) {
+      return { action: 'play', cardId: stackable[0].id };
+    }
   }
 
-  // Score every possible move and pick the best
-  const candidates: { move: AIMove; score: number }[] = [];
-
+  // Build legal move list
+  const legalMoves: AIMove[] = [];
   for (const card of playable) {
     if (card.shape === 'whot') {
-      // Evaluate each shape choice for Whot
-      const bestShape = pickBestShape(state.myHand, card);
-      const score = scoreMove(card, bestShape, state);
-      candidates.push({
-        move: { action: 'play', cardId: card.id, chosenShape: bestShape },
-        score,
-      });
+      const bestShape = pickSmartShape(aiState.hand, card, opponentModel);
+      legalMoves.push({ action: 'play', cardId: card.id, chosenShape: bestShape });
     } else {
-      const score = scoreMove(card, undefined, state);
-      candidates.push({
-        move: { action: 'play', cardId: card.id },
-        score,
-      });
+      legalMoves.push({ action: 'play', cardId: card.id });
     }
   }
 
-  // Sort by score descending, with a small random tiebreaker for variety
-  candidates.sort((a, b) => {
-    const diff = b.score - a.score;
-    if (Math.abs(diff) < 0.5) return Math.random() - 0.5;
-    return diff;
-  });
-
-  const best = candidates[0];
-
-  // Should we draw instead? Only if all plays are terrible
-  if (best.score < -20 && state.myHand.length < 8) {
-    return { action: 'draw' };
+  // Single legal play — just do it
+  if (legalMoves.length === 1) {
+    return legalMoves[0];
   }
 
-  return best.move;
+  // Layer 6: endgame exhaustive search at ≤4 cards
+  if (aiState.hand.length <= 4) {
+    return endgameSelectMove(aiState, legalMoves, opponentModel);
+  }
+
+  // Layer 3: MCTS with determinization
+  return mctsSelectMove(aiState, legalMoves, opponentModel, 1500);
 }
 
 /**
- * Score a card play. Higher = better.
- *
- * Scoring factors:
- *  1. Offensive power — punish the opponent
- *  2. Shape control — play shapes you have many of
- *  3. Card value — get rid of high-value cards early
- *  4. Wild conservation — save Whots for when you need them
- *  5. Endgame awareness — opponent card count matters
- *  6. Tempo — skip cards are more valuable when opponent is close to winning
+ * Pick the best shape when playing Whot, considering opponent weakness.
+ * Prefers the shape we hold the most of, weighted against opponent's weakest.
  */
-function scoreMove(
-  card: Card,
-  chosenShape: Shape | undefined,
-  state: PlayerGameView
-): number {
-  let score = 0;
-  const hand = state.myHand;
-  const oppCards = state.opponentCardCount;
-  const myCards = hand.length;
-  const oppDanger = oppCards <= 3; // opponent is close to winning
-
-  // ── 1. Offensive power ──
-  switch (card.number) {
-    case 2: // Pick Two — force opponent to draw
-      score += 25;
-      if (oppDanger) score += 20; // devastating when they're close to winning
-      break;
-    case 1: // Hold On — skip + play again
-      score += 15;
-      if (oppDanger) score += 15;
-      break;
-    case 8: // Suspension — skip + play again
-      score += 15;
-      if (oppDanger) score += 15;
-      break;
-    case 14: // General Market — opponent draws 1 + play again
-      score += 18;
-      if (oppDanger) score += 12;
-      break;
-    case 20: // Whot — wild card
-      // Penalize playing wilds early — they're more valuable later
-      score -= 10;
-      if (myCards <= 3) score += 25; // but play them in endgame
-      if (oppDanger && myCards > 4) score -= 15; // save for defense
-      break;
-  }
-
-  // ── 2. Shape control — prefer shapes you have many of ──
-  if (card.shape !== 'whot') {
-    const sameShapeCount = hand.filter(c => c.shape === card.shape && c.id !== card.id).length;
-    // Playing a card whose shape matches others in hand = good sequencing
-    score += sameShapeCount * 4;
-
-    // If this is the LAST card of a shape, slight penalty (less flexibility after)
-    if (sameShapeCount === 0) score -= 3;
-  }
-
-  // For Whot cards, bonus for choosing a shape we have many of
-  if (card.number === 20 && chosenShape) {
-    const shapeCount = hand.filter(c => c.shape === chosenShape).length;
-    score += shapeCount * 6;
-  }
-
-  // ── 3. Card value — prefer getting rid of high-number cards ──
-  // High-value cards in hand = bigger penalty if we lose
-  if (card.number !== 20) {
-    score += Math.min(card.number, 14) * 0.5;
-  }
-
-  // ── 4. Number matching potential ──
-  // Cards with common numbers are more flexible — less urgency to play
-  const sameNumberCount = hand.filter(c => c.number === card.number && c.id !== card.id).length;
-  if (sameNumberCount > 0 && card.number !== 20) {
-    score -= 2; // we have backup plays with this number, less urgent
-  }
-
-  // ── 5. Endgame awareness ──
-  if (myCards === 2) {
-    // About to go down to 1 card — play the less useful card
-    const otherCard = hand.find(c => c.id !== card.id);
-    if (otherCard) {
-      // Keep the more powerful/flexible card
-      if (otherCard.number === 20) score += 8; // keep the Whot
-      if ([1, 2, 8, 14].includes(otherCard.number)) score += 4; // keep special cards
-    }
-  }
-
-  if (myCards === 1) {
-    // This is our last card — instant win!
-    score += 100;
-  }
-
-  // ── 6. Tempo when opponent is dangerous ──
-  if (oppDanger) {
-    // Prioritize anything that disrupts them
-    if ([1, 2, 8, 14].includes(card.number)) {
-      score += 10;
-    }
-    // Non-special cards are less valuable when opponent is about to win
-    if (![1, 2, 8, 14, 20].includes(card.number)) {
-      score -= 5;
-    }
-  }
-
-  return score;
-}
-
-/**
- * Pick the best shape to call when playing a Whot card.
- * Chooses the shape we have the most of (excluding the Whot being played).
- */
-function pickBestShape(hand: Card[], whotCard: Card): Shape {
+function pickSmartShape(hand: Card[], whotCard: Card, model: OpponentModel): Shape {
   const counts: Record<Shape, number> = {
     circle: 0, triangle: 0, cross: 0, square: 0, star: 0,
   };
@@ -200,10 +102,25 @@ function pickBestShape(hand: Card[], whotCard: Card): Shape {
   }
 
   let bestShape: Shape = 'circle';
-  let bestCount = -1;
+  let bestScore = -Infinity;
+
   for (const shape of SHAPES) {
-    if (counts[shape] > bestCount) {
-      bestCount = counts[shape];
+    let score = counts[shape] * 3;
+
+    // Penalise calling opponent's dominant suit
+    if (model.dominantSuit === shape) {
+      score -= 5;
+    }
+
+    // Bonus for calling a suit opponent is weak in
+    let oppStrength = 0;
+    for (const [key, prob] of model.cardProbabilities) {
+      if (key.startsWith(shape + '-')) oppStrength += prob;
+    }
+    score -= oppStrength * 2;
+
+    if (score > bestScore) {
+      bestScore = score;
       bestShape = shape;
     }
   }
