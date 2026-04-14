@@ -37,8 +37,6 @@ Pending draws:  ${state.pendingDraws}
 My hand (${state.myHand.length}): ${handSummary}
 Opponent cards: ${state.opponentCardCount}
 Deck remaining: ${state.deckSize}
-Last Card:      ${state.lastCardDeclared}
-
 PROMPT SENT:
 ${prompt}
 ────────────────────────────────────────────────────────────`);

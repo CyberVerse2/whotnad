@@ -2,13 +2,11 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Shape } from '@/types/game';
-import type { PlayerGameView, PointsSummary } from '@/types/messages';
-import { soundWin, soundLose, soundError as soundErrorFx, soundMatchFound } from '@/lib/sounds';
+import type { PlayerGameView, PointsSummary, ServerMessage } from '@/types/messages';
+import { soundWin, soundLose, soundError as soundErrorFx, soundMatchFound, playGojoVoice } from '@/lib/sounds';
+import { useGameSocket } from './use-game-socket';
 
 export type GamePhase = 'idle' | 'queued' | 'matched' | 'playing' | 'finished';
-
-const POLL_INTERVAL_QUEUE = 1500;
-const POLL_INTERVAL_WAITING = 1500;
 
 interface GameHookState {
   phase: GamePhase;
@@ -45,7 +43,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   });
   const connected = Boolean(userId);
 
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const matchIdRef = useRef<string | null>(initialMatchId ?? null);
 
   useEffect(() => {
@@ -65,14 +62,16 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     return fetch(url, { ...options, headers });
   }, [userId]);
 
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  }, []);
+  const lastSpokenThoughtRef = useRef<string | null>(null);
 
   const applyGameStatePayload = useCallback((data: GameStatePayload) => {
+    // Speak Gojo's line if it's a new thought
+    const thought = data.lastAgentThought ?? null;
+    if (thought && thought !== lastSpokenThoughtRef.current) {
+      lastSpokenThoughtRef.current = thought;
+      void playGojoVoice(thought);
+    }
+
     if (data.view.status === 'finished') {
       setState((s) => ({
         ...s,
@@ -81,10 +80,9 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         winner: data.view.winner,
         points: data.points,
         lastAgentThinkMs: data.lastAgentThinkMs,
-        lastAgentThought: data.lastAgentThought ?? null,
+        lastAgentThought: thought,
         forfeiting: false,
       }));
-      stopPolling();
       if (data.view.winner === userId) {
         soundWin();
       } else {
@@ -98,13 +96,13 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       phase: 'playing',
       gameState: data.view,
       lastAgentThinkMs: data.lastAgentThinkMs,
-      lastAgentThought: data.lastAgentThought ?? null,
+      lastAgentThought: thought,
       forfeiting: false,
       error: null,
     }));
 
     return data.view;
-  }, [stopPolling, userId]);
+  }, [userId]);
 
   const fetchGameState = useCallback(async (): Promise<PlayerGameView | null> => {
     const matchId = matchIdRef.current;
@@ -121,52 +119,80 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     }
   }, [userId, authFetch, applyGameStatePayload]);
 
-  const startWaitingPoll = useCallback(() => {
-    stopPolling();
-    pollingRef.current = setInterval(async () => {
-      const view = await fetchGameState();
-      if (view && (view.isMyTurn || view.status === 'finished')) {
-        stopPolling();
-      }
-    }, POLL_INTERVAL_WAITING);
-  }, [fetchGameState, stopPolling]);
-
-  const pollQueue = useCallback(async () => {
-    if (!userId) return;
-    try {
-      const res = await authFetch(`/api/game/queue?userId=${userId}`);
-      const data = await res.json();
-
-      if (data.status === 'matched' && data.matchId) {
+  // Handle incoming WebSocket messages
+  const handleWsMessage = useCallback((msg: ServerMessage) => {
+    switch (msg.type) {
+      case 'MATCH_FOUND':
         soundMatchFound();
         setState((s) => ({
           ...s,
           phase: 'playing',
-          matchId: data.matchId,
+          matchId: msg.matchId,
         }));
-        stopPolling();
-      }
-    } catch {
-      // ignore
-    }
-  }, [userId, authFetch, stopPolling]);
+        break;
 
-  useEffect(() => {
-    stopPolling();
-
-    if (state.phase === 'queued') {
-      void pollQueue();
-      pollingRef.current = setInterval(pollQueue, POLL_INTERVAL_QUEUE);
-    } else if (state.phase === 'playing' && !state.gameState) {
-      void fetchGameState().then((view) => {
-        if (view && !view.isMyTurn && view.status === 'active') {
-          startWaitingPoll();
+      case 'GAME_STATE': {
+        const thought = msg.lastAgentThought ?? null;
+        if (thought && thought !== lastSpokenThoughtRef.current) {
+          lastSpokenThoughtRef.current = thought;
+          void playGojoVoice(thought);
         }
-      });
-    }
+        setState((s) => ({
+          ...s,
+          phase: 'playing',
+          gameState: msg.state,
+          lastAgentThinkMs: msg.lastAgentThinkMs ?? null,
+          lastAgentThought: thought,
+          error: null,
+        }));
+        break;
+      }
 
-    return stopPolling;
-  }, [state.phase, state.gameState === null, pollQueue, fetchGameState, startWaitingPoll, stopPolling]);
+      case 'GAME_OVER': {
+        const thought = msg.lastAgentThought ?? null;
+        if (thought && thought !== lastSpokenThoughtRef.current) {
+          lastSpokenThoughtRef.current = thought;
+          void playGojoVoice(thought);
+        }
+        setState((s) => ({
+          ...s,
+          phase: 'finished',
+          gameState: msg.state,
+          winner: msg.winner,
+          points: msg.points,
+          lastAgentThinkMs: msg.lastAgentThinkMs ?? null,
+          lastAgentThought: thought,
+          forfeiting: false,
+        }));
+        if (msg.winner === userId) {
+          soundWin();
+        } else {
+          soundLose();
+        }
+        break;
+      }
+
+      case 'ERROR':
+        setState((s) => ({ ...s, error: msg.message }));
+        setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
+        break;
+
+      case 'INVALID_MOVE':
+        soundErrorFx();
+        setState((s) => ({ ...s, error: msg.reason }));
+        setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
+        break;
+    }
+  }, [userId]);
+
+  const { isConnected } = useGameSocket(userId, { onMessage: handleWsMessage });
+
+  // Fetch initial game state when entering playing phase (page load / reconnect)
+  useEffect(() => {
+    if (state.phase === 'playing' && !state.gameState) {
+      void fetchGameState();
+    }
+  }, [state.phase, state.gameState === null, fetchGameState]);
 
   const joinQueue = useCallback(async () => {
     if (!userId) {
@@ -216,12 +242,27 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   }, [userId, authFetch]);
 
   const performAction = useCallback(async (
-    action: 'play' | 'draw' | 'declare_last_card',
+    action: 'play' | 'draw',
     cardId?: number,
     chosenShape?: Shape
   ) => {
     if (!userId || !state.matchId) return;
 
+    // Optimistic update for draw — immediately show it's opponent's turn
+    if (action === 'draw' && state.gameState) {
+      setState((s) => {
+        if (!s.gameState) return s;
+        return {
+          ...s,
+          gameState: {
+            ...s.gameState,
+            isMyTurn: false,
+          },
+        };
+      });
+    }
+
+    // Optimistic update for card plays
     if (action === 'play' && cardId !== undefined && state.gameState) {
       const playedCard = state.gameState.myHand.find((c) => c.id === cardId);
       if (playedCard) {
@@ -264,19 +305,17 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         return;
       }
 
-      const view = 'view' in data
-        ? applyGameStatePayload(data as GameStatePayload)
-        : await fetchGameState();
-
-      if (view && !view.isMyTurn && view.status === 'active') {
-        startWaitingPoll();
+      // Apply the REST response for immediate feedback
+      if ('view' in data) {
+        applyGameStatePayload(data as GameStatePayload);
       }
+      // WebSocket will also push any subsequent state updates (e.g. agent turn)
     } catch {
       await fetchGameState();
       setState((s) => ({ ...s, error: 'Network error' }));
       setTimeout(() => setState((s) => ({ ...s, error: null })), 3000);
     }
-  }, [userId, state.matchId, state.gameState, authFetch, applyGameStatePayload, fetchGameState, startWaitingPoll]);
+  }, [userId, state.matchId, state.gameState, authFetch, applyGameStatePayload, fetchGameState]);
 
   const playCard = useCallback(
     (cardId: number, chosenShape?: Shape) => performAction('play', cardId, chosenShape),
@@ -285,11 +324,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
 
   const drawCard = useCallback(
     () => performAction('draw'),
-    [performAction]
-  );
-
-  const declareLastCard = useCallback(
-    () => performAction('declare_last_card'),
     [performAction]
   );
 
@@ -326,7 +360,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   }, [userId, state.matchId, authFetch, applyGameStatePayload, fetchGameState]);
 
   const resetGame = useCallback(() => {
-    stopPolling();
     setState({
       phase: 'idle',
       gameState: null,
@@ -338,17 +371,16 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
       lastAgentThought: null,
       forfeiting: false,
     });
-  }, [stopPolling]);
+  }, []);
 
   return {
     ...state,
-    connected,
+    connected: connected && isConnected,
     log: [],
     joinQueue,
     leaveQueue,
     playCard,
     drawCard,
-    declareLastCard,
     forfeit,
     resetGame,
   };

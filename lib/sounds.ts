@@ -135,3 +135,151 @@ export function soundPickStack() {
   playTone(200, 0.15, 'sawtooth', 0.06);
   setTimeout(() => playTone(180, 0.2, 'sawtooth', 0.05), 100);
 }
+
+// ── Game Effects Sounds ──
+
+/** Bass drop — Pick Two devastation */
+export function soundBassDrop() {
+  playTone(60, 0.3, 'sine', 0.2);
+  playTone(30, 0.4, 'sine', 0.15);
+  playNoise(0.08, 0.08);
+}
+
+/** Lightning crack — low card tension */
+export function soundLightningCrack() {
+  playNoise(0.1, 0.12);
+  playTone(2000, 0.05, 'sine', 0.08);
+  setTimeout(() => playTone(80, 0.5, 'triangle', 0.06), 50);
+}
+
+/** Glass shatter — loss card scatter */
+export function soundShatter() {
+  for (let i = 0; i < 4; i++) {
+    setTimeout(() => playNoise(0.03, 0.1), i * 40);
+  }
+  playTone(1200, 0.08, 'square', 0.05);
+}
+
+/** Combo hit — scales with intensity 1-5 */
+export function soundComboHit(intensity: number) {
+  const freq = 150 + intensity * 30;
+  const vol = 0.04 + intensity * 0.02;
+  playTone(freq, 0.15, 'sawtooth', Math.min(vol, 0.14));
+}
+
+// ── Persistent Heartbeat ──
+
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
+export function startHeartbeat() {
+  if (heartbeatInterval) return;
+  const beat = () => {
+    playTone(60, 0.1, 'sine', 0.06, true);
+    setTimeout(() => playTone(45, 0.12, 'sine', 0.04, true), 150);
+  };
+  beat();
+  heartbeatInterval = setInterval(beat, 800);
+}
+
+export function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+}
+
+// ── Tension Drone ──
+
+let droneOsc1: OscillatorNode | null = null;
+let droneOsc2: OscillatorNode | null = null;
+let droneGain: GainNode | null = null;
+
+export function startTensionDrone(intensity: number) {
+  if (droneOsc1) {
+    updateTensionDrone(intensity);
+    return;
+  }
+  try {
+    const ctx = getCtx();
+    droneGain = ctx.createGain();
+    droneGain.gain.value = 0.01;
+    droneGain.connect(ctx.destination);
+
+    droneOsc1 = ctx.createOscillator();
+    droneOsc1.type = 'sine';
+    droneOsc1.frequency.value = 55;
+    droneOsc1.connect(droneGain);
+    droneOsc1.start();
+
+    droneOsc2 = ctx.createOscillator();
+    droneOsc2.type = 'sine';
+    droneOsc2.frequency.value = 110;
+    droneOsc2.connect(droneGain);
+    droneOsc2.start();
+
+    updateTensionDrone(intensity);
+  } catch {
+    // Audio not available
+  }
+}
+
+export function updateTensionDrone(intensity: number) {
+  if (!droneGain) return;
+  try {
+    const ctx = getCtx();
+    const vol = Math.min(0.04, 0.01 + intensity * 0.03);
+    droneGain.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.5);
+    if (droneOsc1) droneOsc1.detune.linearRampToValueAtTime(intensity * 20, ctx.currentTime + 0.5);
+  } catch { /* ignore */ }
+}
+
+export function stopTensionDrone() {
+  try {
+    if (droneOsc1) { droneOsc1.stop(); droneOsc1 = null; }
+    if (droneOsc2) { droneOsc2.stop(); droneOsc2 = null; }
+    if (droneGain) { droneGain.disconnect(); droneGain = null; }
+  } catch { /* ignore */ }
+}
+
+// ── Gojo TTS voice ──
+
+let currentGojoAudio: HTMLAudioElement | null = null;
+
+/**
+ * Speak a line as Gojo using OpenAI TTS.
+ * Cancels any currently playing voice line.
+ */
+export async function playGojoVoice(text: string): Promise<void> {
+  if (!text) return;
+
+  // Stop any currently playing line
+  if (currentGojoAudio) {
+    currentGojoAudio.pause();
+    currentGojoAudio = null;
+  }
+
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!res.ok) return;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.volume = 0.7;
+    currentGojoAudio = audio;
+
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      if (currentGojoAudio === audio) currentGojoAudio = null;
+    };
+
+    await audio.play();
+  } catch {
+    // TTS not available — silent fail
+  }
+}

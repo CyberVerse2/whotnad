@@ -12,6 +12,7 @@ import { db } from '@/lib/db';
 import { matchmakingQueue, matches, users } from '@/lib/db/schema';
 import { desc, eq, or, sql } from 'drizzle-orm';
 import { getCurrentSeason, updateSeasonPoints } from '@/lib/seasons/manager';
+import { gameEmitter } from '@/lib/ws/emitter';
 
 type MatchRow = typeof matches.$inferSelect;
 
@@ -129,6 +130,11 @@ export async function tryMatch(): Promise<{
     gameState: state,
   });
 
+  gameEmitter.emitQueueMatched({
+    matchId,
+    playerIds: [p1.privyUserId, p2.privyUserId],
+  });
+
   return { matched: true, matchId };
 }
 
@@ -151,8 +157,10 @@ export async function getGameState(matchId: string, userId: string): Promise<{
     if (!game.state.playerOrder.includes(userId)) return null;
 
     if (game.state.status === 'active') {
-      const currentPlayer = game.state.playerOrder[game.state.currentPlayerIndex];
-      if (isAgent(currentPlayer)) {
+      let safety = 0;
+      while (safety++ < 10) {
+        const currentPlayer = game.state.playerOrder[game.state.currentPlayerIndex];
+        if (!isAgent(currentPlayer) || game.state.status !== 'active') break;
         await tickAgentTurn(game, currentPlayer, tx);
       }
     }
@@ -165,10 +173,6 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
   const state = game.state;
   const hand = state.hands[agentId];
   if (!hand || hand.length === 0) return;
-
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set for agent turns');
-  }
 
   const matchId = game.state.matchId;
   let move: { action: string; cardId?: number; chosenShape?: Shape };
@@ -189,19 +193,12 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
       : undefined;
     const detail = move.action === 'play' && cardPlayed
       ? `Played ${cardPlayed.shape} ${cardPlayed.number} [id:${cardPlayed.id}]${move.chosenShape ? ` (called ${move.chosenShape})` : ''}`
-      : move.action === 'draw'
-        ? `Drew from market (pending: ${state.pendingDraws})`
-        : 'Declared Last Card';
+      : `Drew from market (pending: ${state.pendingDraws})`;
 
     const topCard = state.discardPile[state.discardPile.length - 1];
     game.lastAgentThought = buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
 
     switch (move.action) {
-      case 'declare_last_card':
-        game.state = applyTurn(state, agentId, { type: 'declare_last_card' });
-        logAgentAction(matchId, agentId, 'declare_last_card', true, detail);
-        await persistActiveGameState(game, tx);
-        return;
       case 'play':
         game.state = applyTurn(state, agentId, {
           type: 'play',
@@ -221,11 +218,78 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
     const errMsg = err instanceof Error ? err.message : String(err);
     logAgentError(matchId, agentId, `Move "${move.action}" invalid: ${errMsg} — falling back to draw`);
     console.warn(`[Agent] Move "${move.action}" invalid, falling back to draw:`, errMsg);
-    game.lastAgentThought = 'Hmm, that didn\'t work. Drawing a card instead.';
+    game.lastAgentThought = GOJO_FALLBACK_THOUGHT;
     game.state = applyTurn(state, agentId, { type: 'draw' });
     logAgentAction(matchId, agentId, 'draw (fallback)', true, 'Fallback after invalid move');
     await persistTurnOutcome(game, tx);
   }
+}
+
+// ── Gojo's trash talk lines, categorized by game situation ──
+
+const GOJO_DRAW_LINES = [
+  "Tch. Even the strongest has to go to market sometimes.",
+  "Drawing? Don't get cocky — I'm just building up for something big.",
+  "Relax, this is all part of the plan. Probably.",
+  "I'll take one from market. Consider it a handicap.",
+  "Even I can't play what I don't have. Yet.",
+];
+
+const GOJO_DRAW_PENALTY_LINES = [
+  "Fine, I'll take the penalty. Enjoy it — it won't last.",
+  "You think {count} cards scares me? Nah, I'd still win.",
+  "Oh? You actually got me. Don't let it go to your head.",
+  "Taking {count} cards. The comeback will be legendary.",
+];
+
+const GOJO_WHOT_LINES = [
+  "Whot! 💫 I choose {shape}. Try to keep up.",
+  "Whot card goes brrr. {shape} it is. You're welcome.",
+  "Throughout heaven and earth, I alone decide the shape. {shape}.",
+  "Whot! Calling {shape}. This game's already over, you just don't know it yet.",
+];
+
+const GOJO_SKIP_LINES = [
+  "Hold on — did you think it was your turn? How cute.",
+  "Sit down. The strongest is still playing.",
+  "Suspension! Take a break, you need it more than I do.",
+  "Your turn? Nah. I'd skip.",
+  "Stay right there. I'm not done yet.",
+];
+
+const GOJO_PICK_TWO_LINES = [
+  "Pick Two! Go shopping — my treat. 🛒",
+  "Here's a 2. The market's calling your name.",
+  "+2 for you. I'm basically doing charity work at this point.",
+  "Pick Two! Stack or suffer. Either way, I'm entertained.",
+];
+
+const GOJO_GENERAL_MARKET_LINES = [
+  "General Market! Everyone draws... well, just you actually.",
+  "Market time! Here, have a card. You clearly need help.",
+  "14 on the table. Go pick one up, I'll wait.",
+];
+
+const GOJO_NORMAL_PLAY_LINES = [
+  "Too easy.",
+  "This is barely a warmup.",
+  "You see this? Of course you do. Doesn't help though.",
+  "Another perfect play. I almost feel bad. Almost.",
+  "Yawn. Next.",
+  "Is this really the best challenge you've got?",
+];
+
+const GOJO_LOW_CARDS_LINES = [
+  "{count} card left. The end is near... for you.",
+  "Down to {count}. Better start planning your next game.",
+  "Almost done. It'll be fine — I'm the strongest, after all. ✌️",
+  "{count} left. GG.",
+];
+
+const GOJO_FALLBACK_THOUGHT = "Hmm, that didn't work. Even geniuses improvise. Drawing instead.";
+
+function pick(arr: string[]): string {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function buildAgentThought(
@@ -235,45 +299,42 @@ function buildAgentThought(
   hand: { shape: string; number: number }[],
   state: GameState
 ): string {
-  const cardName = (c: { shape: string; number: number }) =>
-    c.shape === 'whot' ? 'Whot!' : `${c.shape} ${c.number}`;
-
-  if (move.action === 'declare_last_card') {
-    return `Down to 2 cards — declaring Last Card before playing.`;
-  }
-
   if (move.action === 'draw') {
     if (state.pendingDraws > 0) {
-      return `No ${state.pendingDrawType} to stack. Taking the ${state.pendingDraws}-card penalty.`;
+      return pick(GOJO_DRAW_PENALTY_LINES).replace('{count}', String(state.pendingDraws));
     }
-    return `No matching cards for ${cardName(topCard)}. Drawing from market.`;
+    return pick(GOJO_DRAW_LINES);
   }
 
   if (move.action === 'play' && cardPlayed) {
-    const parts: string[] = [];
-
+    // Whot wild card
     if (cardPlayed.shape === 'whot') {
-      parts.push(`Played Whot! and called ${move.chosenShape}.`);
-    } else {
-      const matchReason = cardPlayed.shape === topCard.shape
-        ? `matches ${topCard.shape}`
-        : `matches number ${cardPlayed.number}`;
-      parts.push(`Played ${cardName(cardPlayed)} (${matchReason}).`);
+      return pick(GOJO_WHOT_LINES).replace('{shape}', move.chosenShape ?? 'circle');
     }
 
+    // Skip cards (Hold On / Suspension)
     if (cardPlayed.number === 1 || cardPlayed.number === 8) {
-      parts.push('Skipping your turn.');
-    } else if (cardPlayed.number === 2) {
-      parts.push('Pick Two — you draw 2 or stack another 2.');
-    } else if (cardPlayed.number === 14) {
-      parts.push('General Market — you draw 1.');
+      return pick(GOJO_SKIP_LINES);
     }
 
-    if (hand.length <= 3) {
-      parts.push(`${hand.length - 1} card${hand.length - 1 === 1 ? '' : 's'} left.`);
+    // Pick Two
+    if (cardPlayed.number === 2) {
+      return pick(GOJO_PICK_TWO_LINES);
     }
 
-    return parts.join(' ');
+    // General Market
+    if (cardPlayed.number === 14) {
+      return pick(GOJO_GENERAL_MARKET_LINES);
+    }
+
+    // Low card count — about to win
+    const remaining = hand.length - 1;
+    if (remaining <= 2 && remaining > 0) {
+      return pick(GOJO_LOW_CARDS_LINES).replace('{count}', String(remaining));
+    }
+
+    // Normal play
+    return pick(GOJO_NORMAL_PLAY_LINES);
   }
 
   return 'Making a move...';
@@ -292,7 +353,7 @@ function buildAgentView(state: GameState, agentId: string): PlayerGameView {
     pendingDrawType: raw.pendingDrawType as PlayerGameView['pendingDrawType'],
     currentPlayerId: raw.currentPlayerId as string,
     isMyTurn: true,
-    lastCardDeclared: raw.lastCardDeclared as boolean,
+
     turnCount: raw.turnCount as number,
     status: raw.status as PlayerGameView['status'],
     winner: raw.winner as string | null,
@@ -305,10 +366,10 @@ export async function playCard(
   cardId: number,
   chosenShape?: Shape
 ): Promise<{ success: boolean; error?: string }> {
-  return withMatchLock(matchId, async (tx) => {
+  const result = await withMatchLock(matchId, async (tx) => {
     const game = await loadGameForAction(matchId, tx);
-    if (!game) return { success: false, error: 'Game not found' };
-    if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
+    if (!game) return { success: false as const, error: 'Game not found' };
+    if (game.state.status !== 'active') return { success: false as const, error: 'Game is not active' };
 
     try {
       game.state = applyTurn(game.state, userId, {
@@ -317,49 +378,48 @@ export async function playCard(
         chosenShape,
       });
       await persistTurnOutcome(game, tx);
-      return { success: true };
+      // Broadcast the player's move immediately
+      broadcastGameState(game);
+      return { success: true as const, matchId: game.state.matchId, needsAgent: needsAgentTurn(game) };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Invalid move' };
+      return { success: false as const, error: error instanceof Error ? error.message : 'Invalid move' };
     }
   });
+
+  // Run agent turn AFTER responding — async, non-blocking
+  if (result.success && result.needsAgent) {
+    void runDeferredAgentTurn(matchId);
+  }
+
+  return result;
 }
 
 export async function drawCard(
   matchId: string,
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
-  return withMatchLock(matchId, async (tx) => {
+  const result = await withMatchLock(matchId, async (tx) => {
     const game = await loadGameForAction(matchId, tx);
-    if (!game) return { success: false, error: 'Game not found' };
-    if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
+    if (!game) return { success: false as const, error: 'Game not found' };
+    if (game.state.status !== 'active') return { success: false as const, error: 'Game is not active' };
 
     try {
       game.state = applyTurn(game.state, userId, { type: 'draw' });
       await persistTurnOutcome(game, tx);
-      return { success: true };
+      // Broadcast the player's draw immediately
+      broadcastGameState(game);
+      return { success: true as const, matchId: game.state.matchId, needsAgent: needsAgentTurn(game) };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Invalid move' };
+      return { success: false as const, error: error instanceof Error ? error.message : 'Invalid move' };
     }
   });
-}
 
-export async function declareLastCard(
-  matchId: string,
-  userId: string
-): Promise<{ success: boolean; error?: string }> {
-  return withMatchLock(matchId, async (tx) => {
-    const game = await loadGameForAction(matchId, tx);
-    if (!game) return { success: false, error: 'Game not found' };
-    if (game.state.status !== 'active') return { success: false, error: 'Game is not active' };
+  // Run agent turn AFTER responding — async, non-blocking
+  if (result.success && result.needsAgent) {
+    void runDeferredAgentTurn(matchId);
+  }
 
-    try {
-      game.state = applyTurn(game.state, userId, { type: 'declare_last_card' });
-      await persistActiveGameState(game, tx);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Invalid move' };
-    }
-  });
+  return result;
 }
 
 export async function forfeitGame(
@@ -377,8 +437,40 @@ export async function forfeitGame(
     game.state.status = 'finished';
 
     await finalizeGame(game, tx);
+    broadcastGameState(game);
     return { success: true };
   });
+}
+
+function needsAgentTurn(game: ActiveGame): boolean {
+  if (game.state.status !== 'active') return false;
+  const currentPlayer = game.state.playerOrder[game.state.currentPlayerIndex];
+  return isAgent(currentPlayer);
+}
+
+/**
+ * Run agent turn in a separate transaction — non-blocking.
+ * Called with `void` so the HTTP response isn't held up.
+ * Result is pushed to the player via WebSocket.
+ */
+async function runDeferredAgentTurn(matchId: string): Promise<void> {
+  try {
+    await withMatchLock(matchId, async (tx) => {
+      const game = await loadGameForAction(matchId, tx);
+      if (!game || game.state.status !== 'active') return;
+
+      // Loop: agent may get multiple turns in a row (skip cards like Hold On, Suspension, General Market)
+      let safety = 0;
+      while (safety++ < 10) {
+        const currentPlayer = game.state.playerOrder[game.state.currentPlayerIndex];
+        if (!isAgent(currentPlayer) || game.state.status !== 'active') break;
+        await tickAgentTurn(game, currentPlayer, tx);
+        broadcastGameState(game);
+      }
+    });
+  } catch (err) {
+    console.error(`[Agent] Deferred agent turn failed for ${matchId}:`, err);
+  }
 }
 
 async function persistTurnOutcome(game: ActiveGame, tx: DbExecutor): Promise<void> {
@@ -537,6 +629,30 @@ function toActiveGame(row: MatchRow): ActiveGame | null {
   };
 }
 
+function broadcastGameState(game: ActiveGame) {
+  const views: Record<string, {
+    view: PlayerGameView;
+    points: PointsSummary | null;
+    lastAgentThinkMs: number | null;
+    lastAgentThought: string | null;
+  }> = {};
+
+  for (const playerId of game.state.playerOrder) {
+    const resp = buildGameStateResponse(game, playerId);
+    views[playerId] = {
+      view: resp.view,
+      points: resp.points,
+      lastAgentThinkMs: resp.lastAgentThinkMs,
+      lastAgentThought: resp.lastAgentThought,
+    };
+  }
+
+  gameEmitter.emitGameState({
+    matchId: game.state.matchId,
+    views,
+  });
+}
+
 function buildGameStateResponse(game: ActiveGame, userId: string) {
   const raw = getPlayerView(game.state, userId) as Record<string, unknown>;
   const view: PlayerGameView = {
@@ -550,7 +666,7 @@ function buildGameStateResponse(game: ActiveGame, userId: string) {
     pendingDrawType: raw.pendingDrawType as PlayerGameView['pendingDrawType'],
     currentPlayerId: raw.currentPlayerId as string,
     isMyTurn: raw.isMyTurn as boolean,
-    lastCardDeclared: raw.lastCardDeclared as boolean,
+
     turnCount: raw.turnCount as number,
     status: raw.status as PlayerGameView['status'],
     winner: raw.winner as string | null,

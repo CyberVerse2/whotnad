@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Rubik, Nunito } from "next/font/google";
+import { Chakra_Petch, Nunito } from "next/font/google";
 import { PrivyProviderWrapper } from "@/components/providers/privy-provider";
 import "./globals.css";
 
-const rubik = Rubik({
-  variable: "--font-rubik",
+const chakraPetch = Chakra_Petch({
+  variable: "--font-chakra-petch",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -29,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${rubik.variable} ${nunito.variable} h-full`}
+      className={`${chakraPetch.variable} ${nunito.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
         <PrivyProviderWrapper>{children}</PrivyProviderWrapper>

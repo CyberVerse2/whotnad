@@ -27,7 +27,7 @@ Requires Node 22.x. Package manager is pnpm.
 
 - `DB_URL` (or `DATABASE_URL`) — PostgreSQL connection string
 - `OPENAI_API_KEY` — Required for AI agent (Gojo) to play
-- `OPENAI_AGENT_MODEL` — Optional, defaults to `gpt-5-nano`
+- `OPENAI_AGENT_MODEL` — Optional, defaults to `gpt-5.4-mini`
 - `DRAND_URL` — Optional, defaults to `https://api.drand.sh`
 
 ## Architecture

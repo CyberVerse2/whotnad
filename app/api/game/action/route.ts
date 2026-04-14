@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { playCard, drawCard, declareLastCard, getGameState } from '@/lib/game/store';
+import { playCard, drawCard, getGameState } from '@/lib/game/store';
 import { verifyRequest } from '@/lib/auth/verify-request';
 import type { Shape } from '@/types/game';
 
 interface ActionBody {
   matchId: string;
-  action: 'play' | 'draw' | 'declare_last_card';
+  action: 'play' | 'draw';
   cardId?: number;
   chosenShape?: Shape;
 }
@@ -43,10 +43,6 @@ export async function POST(request: NextRequest) {
 
       case 'draw':
         result = await drawCard(matchId, privyUserId);
-        break;
-
-      case 'declare_last_card':
-        result = await declareLastCard(matchId, privyUserId);
         break;
 
       default:

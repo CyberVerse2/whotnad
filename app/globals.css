@@ -1,52 +1,65 @@
 @import "tailwindcss";
 
 /*
- * Whotnad Design System — Light
- * Monad purple accent, clean white, competitive
+ * Whotnad Design System — African Dark
+ * Nigerian card game energy: warm gold, terracotta, teal on deep dark
  */
 
 :root {
-  /* ── Brand Colors (Monad purple — contrast-safe) ── */
-  --accent: #6350CC;
-  --accent-bright: #836EF9;
-  --accent-dim: #5243A8;
+  /* ── Brand Colors (African warmth) ── */
+  --accent: #D4A017;
+  --accent-bright: #E8B930;
+  --accent-dim: #B8890F;
 
-  --gold-base: #7d5c07;
-  --gold-bright: #946b09;
-  --gold-dim: #5e4505;
+  --gold-base: #D4A017;
+  --gold-bright: #E8B930;
+  --gold-dim: #B8890F;
 
-  /* ── Surfaces (clean white) ── */
-  --surface-0: #ffffff;
-  --surface-1: #f7f7f7;
-  --surface-2: #efefef;
-  --surface-3: #e0e0e0;
+  --teal: #1A8F6E;
+  --teal-bright: #22B88D;
+  --teal-dim: #14705A;
 
-  /* ── Text ── */
-  --text-primary: #1a1a1a;
-  --text-secondary: #555550;
-  --text-muted: #6a6860;
+  --terracotta: #C0392B;
+  --terracotta-bright: #E74C3C;
+  --terracotta-dim: #962D22;
+
+  --earth: #8B6914;
+  --earth-bright: #A67C1A;
+  --earth-dim: #6B510F;
+
+  /* ── Surfaces (deep dark with warm undertone) ── */
+  --surface-0: #0E0D0A;
+  --surface-1: #1A1814;
+  --surface-2: #252219;
+  --surface-3: #352F24;
+  --surface-4: #443C2E;
+
+  /* ── Text (warm whites) ── */
+  --text-primary: #F0E8D8;
+  --text-secondary: #BFB69E;
+  --text-muted: #8A8170;
 
   /* ── Semantic ── */
-  --danger: #c0392b;
-  --warning: #b8860b;
-  --success: #2e7d32;
+  --danger: #E74C3C;
+  --warning: #D4A017;
+  --success: #22B88D;
 
   /* ── Legacy aliases ── */
-  --green-base: var(--accent);
-  --green-bright: var(--accent-bright);
-  --green-dim: var(--accent-dim);
+  --green-base: var(--teal);
+  --green-bright: var(--teal-bright);
+  --green-dim: var(--teal-dim);
 
-  /* ── Typography (Rubik everywhere) ── */
-  --font-display: var(--font-rubik), system-ui, sans-serif;
-  --font-body: var(--font-rubik), system-ui, sans-serif;
+  /* ── Typography ── */
+  --font-display: var(--font-chakra-petch), system-ui, sans-serif;
+  --font-body: var(--font-nunito), system-ui, sans-serif;
 
   /* ── Easing ── */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
   /* Tailwind compat */
-  --background: #ffffff;
-  --foreground: #1a1a1a;
+  --background: #0E0D0A;
+  --foreground: #F0E8D8;
 }
 
 @theme inline {
@@ -66,10 +79,10 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: #fff;
+  color: var(--surface-0);
 }
 
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 6px; height: 0; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
 
@@ -82,19 +95,70 @@ body {
 .font-display {
   font-family: var(--font-display);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
   line-height: 1;
 }
 
 .text-gold { color: var(--gold-base); }
-.text-green { color: var(--accent-bright); }
+.text-teal { color: var(--teal); }
 .text-accent { color: var(--accent); }
+.text-terracotta { color: var(--terracotta); }
 .bg-surface-1 { background: var(--surface-1); }
 .bg-surface-2 { background: var(--surface-2); }
 .bg-surface-3 { background: var(--surface-3); }
 
 .felt-texture {
   background: var(--surface-0);
+  /* Subtle noise grain for table texture */
+  background-image:
+    radial-gradient(circle at 20% 50%, oklch(0.15 0.01 80) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, oklch(0.13 0.01 60) 0%, transparent 50%);
+}
+
+/* ── Tribal border accent ── */
+.tribal-border {
+  position: relative;
+}
+.tribal-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent) 0px,
+    var(--accent) 8px,
+    transparent 8px,
+    transparent 12px,
+    var(--terracotta) 12px,
+    var(--terracotta) 20px,
+    transparent 20px,
+    transparent 24px,
+    var(--teal) 24px,
+    var(--teal) 32px,
+    transparent 32px,
+    transparent 36px
+  );
+  opacity: 0.6;
+}
+
+/* ── Zigzag divider (Kente-inspired) ── */
+.kente-divider {
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent) 0px,
+    var(--accent) 6px,
+    var(--terracotta) 6px,
+    var(--terracotta) 12px,
+    var(--teal) 12px,
+    var(--teal) 18px,
+    var(--earth) 18px,
+    var(--earth) 24px
+  );
+  border-radius: 2px;
 }
 
 /* ── Animations ── */
@@ -148,8 +212,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 80, 204, 0); }
-  50% { box-shadow: 0 0 0 6px rgba(99, 80, 204, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.7 0.15 80 / 0); }
+  50% { box-shadow: 0 0 0 6px oklch(0.7 0.15 80 / 0.2); }
 }
 
 @keyframes turn-pulse {
@@ -183,6 +247,11 @@ body {
   0% { opacity: 0; transform: scale(0.5); }
   60% { transform: scale(1.08); }
   100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ember-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
 /* ── Animation utilities ── */
@@ -255,6 +324,180 @@ button, [role="button"], a[style*="background"] {
 button:active:not(:disabled), [role="button"]:active, a[style*="background"]:active {
   transform: scale(0.96);
   opacity: 0.85;
+}
+
+/* ══════════════════════════════════════════════════
+   GAME EFFECTS — Insane Mode
+   ══════════════════════════════════════════════════ */
+
+/* ── Screen shake (opponent special cards) ── */
+@keyframes screen-shake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-6px, 2px); }
+  20% { transform: translate(5px, -3px); }
+  30% { transform: translate(-4px, 4px); }
+  40% { transform: translate(6px, -1px); }
+  50% { transform: translate(-3px, -4px); }
+  60% { transform: translate(4px, 3px); }
+  70% { transform: translate(-5px, -2px); }
+  80% { transform: translate(3px, 4px); }
+  90% { transform: translate(-2px, -3px); }
+}
+
+.animate-screen-shake {
+  animation: screen-shake 0.4s var(--ease-out-quart);
+}
+
+/* ── Shockwave pulse (Whot! played) ── */
+@keyframes shockwave-pulse {
+  0% { box-shadow: 0 0 0 0 var(--shockwave-color, #D4A017); }
+  50% { box-shadow: 0 0 30px 40px transparent; }
+  100% { box-shadow: 0 0 60px 80px transparent; }
+}
+
+.animate-shockwave {
+  --shockwave-color: #D4A017;
+  animation: shockwave-pulse 0.6s var(--ease-out-expo) forwards;
+}
+
+/* ── Lightning flash ── */
+@keyframes lightning-flash {
+  0% { background-color: transparent; }
+  10% { background-color: rgba(255, 255, 255, 0.06); }
+  20% { background-color: transparent; }
+  30% { background-color: rgba(255, 255, 255, 0.03); }
+  100% { background-color: transparent; }
+}
+
+.animate-lightning-flash {
+  animation: lightning-flash 0.3s ease-out;
+}
+
+/* ── Screen cracks (loss) ── */
+@keyframes crack-spread {
+  0% { opacity: 0; }
+  20% { opacity: 0.2; }
+  100% { opacity: 0.15; }
+}
+
+.animate-screen-crack {
+  animation: crack-spread 0.5s ease-out forwards;
+  background-image:
+    /* Main diagonal crack */
+    linear-gradient(47deg, transparent 40%, rgba(255,255,255,0.15) 40.5%, transparent 41%),
+    linear-gradient(47deg, transparent 55%, rgba(255,255,255,0.1) 55.5%, transparent 56%),
+    /* Branch cracks */
+    linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.08) 30.5%, transparent 31%),
+    linear-gradient(-30deg, transparent 60%, rgba(255,255,255,0.1) 60.5%, transparent 61%),
+    linear-gradient(70deg, transparent 45%, rgba(255,255,255,0.06) 45.5%, transparent 46%),
+    /* Spider web cracks */
+    linear-gradient(160deg, transparent 35%, rgba(255,255,255,0.05) 35.5%, transparent 36%),
+    linear-gradient(-60deg, transparent 50%, rgba(255,255,255,0.07) 50.5%, transparent 51%);
+}
+
+/* ── Domain Expansion (Gojo devastation) ── */
+@keyframes domain-expand {
+  0% { opacity: 0; transform: scale(0); }
+  15% { opacity: 0.85; transform: scale(1.1); }
+  30% { opacity: 0.7; transform: scale(1); }
+  80% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+
+.animate-domain-expansion {
+  animation: domain-expand 2.5s var(--ease-out-expo) forwards;
+  background: radial-gradient(
+    circle at center,
+    rgba(139, 92, 246, 0.3) 0%,
+    rgba(99, 102, 241, 0.2) 30%,
+    rgba(59, 7, 100, 0.15) 60%,
+    transparent 80%
+  );
+  z-index: 95 !important;
+}
+
+/* ── Combo meter escalation ── */
+@keyframes combo-escalate {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.animate-combo-hit {
+  animation: combo-escalate 0.3s var(--ease-out-expo);
+}
+
+/* ── Final slam (winning card) ── */
+@keyframes final-slam {
+  0% { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  40% { opacity: 1; transform: scale(1.2) rotate(2deg); }
+  60% { transform: scale(0.95) rotate(-1deg); }
+  80% { transform: scale(1.05) rotate(0deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.animate-final-slam {
+  animation: final-slam 0.8s var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+/* ── Card scatter (loss — cards fly away) ── */
+@keyframes card-scatter {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+  100% {
+    opacity: 0;
+    transform:
+      translate(var(--scatter-x, 100px), var(--scatter-y, -200px))
+      rotate(var(--scatter-r, 45deg))
+      scale(0.3);
+  }
+}
+
+.animate-card-scatter {
+  animation: card-scatter 0.8s var(--ease-out-expo) forwards;
+}
+
+/* ── Market urgent glow (must draw) ── */
+@keyframes market-urgent {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 160, 23, 0); }
+  50% { box-shadow: 0 0 16px 6px rgba(212, 160, 23, 0.35); }
+}
+
+.animate-market-urgent {
+  animation: market-urgent 1s ease-in-out infinite;
+}
+
+/* ── Gojo eyes glow (skip cards) ── */
+@keyframes gojo-eyes-glow {
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  30% { box-shadow: 0 0 20px 8px rgba(139, 92, 246, 0.5), 0 0 40px 16px rgba(99, 102, 241, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+.animate-gojo-eyes {
+  animation: gojo-eyes-glow 1.5s var(--ease-out-expo);
+}
+
+/* ── Board tint (winning/losing atmosphere) ── */
+.board-tint-green {
+  background-color: rgba(34, 184, 141, 0.03) !important;
+}
+
+.board-tint-red {
+  background-color: rgba(231, 76, 60, 0.03) !important;
+}
+
+/* ── Heartbeat pulse (low cards tension) ── */
+@keyframes heartbeat-pulse {
+  0%, 100% { transform: scale(1); }
+  8% { transform: scale(1.008); }
+  16% { transform: scale(1); }
+  24% { transform: scale(1.005); }
+  32% { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat-pulse 1.2s ease-in-out infinite;
 }
 
 /* ── Reduced motion ── */

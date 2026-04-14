@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidPlay, getPlayableCards, mustDraw, needsLastCardDeclaration } from '../rules';
+import { isValidPlay, getPlayableCards, mustDraw } from '../rules';
 import type { Card, GameState } from '@/types/game';
 
 const card = (shape: Card['shape'], number: number, id = 0): Card => ({
@@ -101,28 +101,3 @@ describe('mustDraw', () => {
   });
 });
 
-describe('needsLastCardDeclaration', () => {
-  it('returns true when player has 2 cards and has not declared', () => {
-    const state = {
-      hands: { p1: [card('circle', 3), card('circle', 5)] },
-      lastCardDeclared: { p1: false },
-    } as unknown as GameState;
-    expect(needsLastCardDeclaration(state, 'p1')).toBe(true);
-  });
-
-  it('returns false when already declared', () => {
-    const state = {
-      hands: { p1: [card('circle', 3), card('circle', 5)] },
-      lastCardDeclared: { p1: true },
-    } as unknown as GameState;
-    expect(needsLastCardDeclaration(state, 'p1')).toBe(false);
-  });
-
-  it('returns false when player has more than 2 cards', () => {
-    const state = {
-      hands: { p1: [card('circle', 3), card('circle', 5), card('circle', 7)] },
-      lastCardDeclared: { p1: false },
-    } as unknown as GameState;
-    expect(needsLastCardDeclaration(state, 'p1')).toBe(false);
-  });
-});

@@ -1,9 +1,11 @@
 'use client';
 
-import { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useGame } from '@/hooks/use-game';
 import { Board } from '@/components/game/board';
+import { useParticleCanvas } from '@/hooks/use-particle-canvas';
+import { soundShatter } from '@/lib/sounds';
 import Link from 'next/link';
 
 export default function PlayPage() {
@@ -43,7 +45,6 @@ function PlayPageContent() {
     lastAgentThought,
     playCard,
     drawCard,
-    declareLastCard,
     forfeit,
     resetGame,
   } = useGame(userId, matchIdFromUrl);
@@ -86,99 +87,7 @@ function PlayPageContent() {
   if (phase === 'finished' && gameState && points) {
     const isWinner = winner === userId;
     return (
-      <div className="felt-texture" style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        gap: 24,
-      }}>
-        <h1 className={`font-display ${isWinner ? 'animate-win' : 'animate-slide-up'}`} style={{
-          fontSize: 'clamp(3rem, 10vw, 5rem)',
-          fontWeight: 900,
-          color: isWinner ? 'var(--gold-base)' : 'var(--danger)',
-          lineHeight: 0.9,
-        }}>
-          {isWinner ? 'YOU WIN' : 'YOU LOSE'}
-        </h1>
-
-        <div className="animate-slide-up stagger-2" style={{
-          background: 'var(--surface-1)',
-          borderRadius: 6,
-          padding: 24,
-          minWidth: 260,
-        }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <PointRow label="BASE" value={isWinner ? points.basePoints : points.loserPoints} />
-            {isWinner && (
-              <>
-                <PointRow label="DOMINANCE" value={points.dominanceBonus} color="var(--gold-base)" prefix="+" />
-                <PointRow label="SPEED" value={points.speedBonus} color="var(--green-bright)" prefix="+" />
-                {points.streakMultiplier > 1 && (
-                  <PointRow
-                    label="STREAK"
-                    value={`${points.streakMultiplier}x`}
-                    color="var(--gold-bright)"
-                  />
-                )}
-                <div style={{
-                  borderTop: '1px solid var(--surface-3)',
-                  paddingTop: 12,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'baseline',
-                }}>
-                  <span className="font-display" style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: '0.1em',
-                    color: 'var(--text-primary)',
-                  }}>
-                    TOTAL
-                  </span>
-                  <span className="font-display" style={{
-                    fontSize: 28,
-                    fontWeight: 900,
-                    color: 'var(--gold-base)',
-                  }}>
-                    {points.winnerPoints}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="animate-slide-up stagger-4" style={{ display: 'flex', gap: 12 }}>
-          <Link href="/lobby" onClick={resetGame} style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 800,
-            fontSize: 13,
-            letterSpacing: '0.08em',
-            background: 'var(--accent)',
-            color: '#fff',
-            padding: '12px 24px',
-            borderRadius: 6,
-            textDecoration: 'none',
-          }}>
-            PLAY AGAIN
-          </Link>
-          <Link href="/leaderboard" style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 13,
-            letterSpacing: '0.08em',
-            background: 'var(--surface-2)',
-            color: 'var(--text-secondary)',
-            padding: '12px 24px',
-            borderRadius: 6,
-            textDecoration: 'none',
-          }}>
-            LEADERBOARD
-          </Link>
-        </div>
-      </div>
+      <WinLoseScreen isWinner={isWinner} points={points} resetGame={resetGame} />
     );
   }
 
@@ -212,7 +121,6 @@ function PlayPageContent() {
         userId={userId}
         onPlayCard={playCard}
         onDraw={drawCard}
-        onDeclareLastCard={declareLastCard}
         onLeave={handleLeave}
         onForfeit={forfeit}
         forfeiting={forfeiting}
@@ -256,6 +164,114 @@ function PlayPageLoading({
       }}>
         {label}
       </span>
+    </div>
+  );
+}
+
+function WinLoseScreen({
+  isWinner,
+  points,
+  resetGame,
+}: {
+  isWinner: boolean;
+  points: { basePoints: number; loserPoints: number; dominanceBonus: number; speedBonus: number; streakMultiplier: number; winnerPoints: number };
+  resetGame: () => void;
+}) {
+  const { canvasRef, engine } = useParticleCanvas();
+
+  useEffect(() => {
+    if (!engine) return;
+    const center = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    if (isWinner) {
+      const colors = ['#D4A017', '#E8B930', '#22B88D', '#4DA6E8', '#B47AE8'];
+      engine.spawnConfetti(center, colors, 50);
+      const t1 = setTimeout(() => engine.spawnConfetti({ ...center, y: center.y - 50 }, colors, 40), 500);
+      const t2 = setTimeout(() => engine.spawnConfetti({ ...center, y: center.y + 50 }, colors, 30), 1000);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    } else {
+      soundShatter();
+      engine.spawnShatter(center, '#E74C3C', 30);
+      const t1 = setTimeout(() => engine.spawnHollowPurple(center), 400);
+      return () => clearTimeout(t1);
+    }
+  }, [engine, isWinner]);
+
+  return (
+    <div className="felt-texture" style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      gap: 24,
+      position: 'relative',
+    }}>
+      <canvas
+        ref={canvasRef}
+        style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 90 }}
+      />
+      {!isWinner && (
+        <div className="animate-screen-crack" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 89 }} />
+      )}
+
+      <h1 className={`font-display ${isWinner ? 'animate-win' : 'animate-slide-up'}`} style={{
+        fontSize: 'clamp(3rem, 10vw, 5rem)',
+        fontWeight: 900,
+        color: isWinner ? 'var(--gold-base)' : 'var(--danger)',
+        lineHeight: 0.9,
+        zIndex: 91,
+      }}>
+        {isWinner ? 'YOU WIN' : 'YOU LOSE'}
+      </h1>
+
+      <div className="kente-divider animate-slide-up stagger-1" style={{ width: 120, zIndex: 91 }} />
+      <div className="animate-slide-up stagger-2" style={{
+        background: 'var(--surface-1)',
+        borderRadius: 6,
+        padding: 24,
+        minWidth: 260,
+        border: '1px solid rgba(255,255,255,0.06)',
+        zIndex: 91,
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <PointRow label="BASE" value={isWinner ? points.basePoints : points.loserPoints} />
+          {isWinner && (
+            <>
+              <PointRow label="DOMINANCE" value={points.dominanceBonus} color="var(--gold-base)" prefix="+" />
+              <PointRow label="SPEED" value={points.speedBonus} color="var(--green-bright)" prefix="+" />
+              {points.streakMultiplier > 1 && (
+                <PointRow label="STREAK" value={`${points.streakMultiplier}x`} color="var(--gold-bright)" />
+              )}
+              <div style={{
+                borderTop: '1px solid var(--surface-3)',
+                paddingTop: 12,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+              }}>
+                <span className="font-display" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--text-primary)' }}>TOTAL</span>
+                <span className="font-display" style={{ fontSize: 28, fontWeight: 900, color: 'var(--gold-base)' }}>{points.winnerPoints}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="animate-slide-up stagger-4" style={{ display: 'flex', gap: 12, zIndex: 91 }}>
+        <Link href="/lobby" onClick={resetGame} style={{
+          fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, letterSpacing: '0.08em',
+          background: 'var(--accent)', color: 'var(--surface-0)', padding: '12px 24px', borderRadius: 6, textDecoration: 'none',
+        }}>
+          PLAY AGAIN
+        </Link>
+        <Link href="/leaderboard" style={{
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, letterSpacing: '0.08em',
+          background: 'var(--surface-2)', color: 'var(--text-secondary)', padding: '12px 24px', borderRadius: 6, textDecoration: 'none',
+        }}>
+          LEADERBOARD
+        </Link>
+      </div>
     </div>
   );
 }

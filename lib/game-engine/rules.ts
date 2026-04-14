@@ -71,15 +71,6 @@ export function mustDraw(state: GameState, playerId: string): boolean {
 }
 
 /**
- * Check if the player needs to declare "Last Card" before playing.
- * Required when player has exactly 2 cards and is about to play one.
- */
-export function needsLastCardDeclaration(state: GameState, playerId: string): boolean {
-  const hand = state.hands[playerId];
-  return hand.length === 2 && !state.lastCardDeclared[playerId];
-}
-
-/**
  * Get the number of cards a player must draw for pending effects.
  */
 export function getPendingDrawCount(state: GameState): number {

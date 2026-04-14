@@ -219,25 +219,10 @@ describe('applyTurn — Last Card declaration', () => {
     };
   }
 
-  it('allows declaring Last Card with 2 cards', () => {
+  it('allows playing with 2 cards without penalty', () => {
     const state = makeState();
-    const next = applyTurn(state, 'p1', { type: 'declare_last_card' });
-    expect(next.lastCardDeclared.p1).toBe(true);
-  });
-
-  it('penalizes playing without declaring Last Card', () => {
-    const state = makeState();
-    // p1 has 2 cards, hasn't declared, tries to play
     const next = applyTurn(state, 'p1', { type: 'play', cardId: 100 });
-    // Should draw penalty cards instead
-    expect(next.hands.p1.length).toBeGreaterThan(2);
-  });
-
-  it('allows playing after declaring Last Card', () => {
-    const state = makeState();
-    const declared = applyTurn(state, 'p1', { type: 'declare_last_card' });
-    const played = applyTurn(declared, 'p1', { type: 'play', cardId: 100 });
-    expect(played.hands.p1.length).toBe(1);
+    expect(next.hands.p1.length).toBe(1);
   });
 });
 
@@ -254,7 +239,6 @@ describe('applyTurn — win condition', () => {
         ],
       },
       discardPile: [{ id: 50, shape: 'circle' as const, number: 10 }],
-      lastCardDeclared: { p1: true, p2: false },
       currentPlayerIndex: 0,
     };
 
