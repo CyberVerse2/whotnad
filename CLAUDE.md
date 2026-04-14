@@ -26,7 +26,7 @@ Requires Node 22.x. Package manager is pnpm.
 ## Environment Variables
 
 - `DB_URL` (or `DATABASE_URL`) — PostgreSQL connection string
-- `OPENAI_API_KEY` — Required for AI agent (Gojo) to play
+- `OPENAI_API_KEY` — Required for AI agent (Tinubu) to play
 - `OPENAI_AGENT_MODEL` — Optional, defaults to `gpt-5.4-mini`
 - `DRAND_URL` — Optional, defaults to `https://api.drand.sh`
 

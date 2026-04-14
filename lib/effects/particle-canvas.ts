@@ -192,7 +192,7 @@ export class ParticleEngine {
     this.lightningBolts.push({ segments, color, life: 0, maxLife: 0.25, width: 2 });
   }
 
-  /** Orbit particles around a point (Gojo thinking) */
+  /** Orbit particles around a point (Tinubu thinking) */
   spawnOrbit(center: { x: number; y: number }, color: string, count = 8) {
     const n = scale(count);
     const radius = 20 + Math.random() * 10;
@@ -234,7 +234,7 @@ export class ParticleEngine {
     }
   }
 
-  /** Hollow purple explosion (Gojo victory) */
+  /** Hollow purple explosion (Tinubu victory) */
   spawnHollowPurple(center: { x: number; y: number }) {
     // Core purple burst
     this.spawnBurst(center, '#8B5CF6', 40);

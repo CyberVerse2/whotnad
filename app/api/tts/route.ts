@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const OPENAI_TTS_URL = 'https://api.openai.com/v1/audio/speech';
+const FISH_AUDIO_TTS_URL = 'https://api.fish.audio/v1/tts';
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    const apiKey = process.env.FISH_AUDIO_API_KEY;
+    const voiceId = process.env.FISH_AUDIO_VOICE_ID;
+
+    if (!apiKey || !voiceId) {
       return NextResponse.json({ error: 'TTS not configured' }, { status: 503 });
     }
 
@@ -15,23 +17,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid text' }, { status: 400 });
     }
 
-    const res = await fetch(OPENAI_TTS_URL, {
+    const res = await fetch(FISH_AUDIO_TTS_URL, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'model': 's2-pro',
       },
       body: JSON.stringify({
-        model: 'tts-1',
-        voice: 'onyx',
-        input: text,
-        speed: 1.05,
-        response_format: 'mp3',
+        text,
+        reference_id: voiceId,
+        format: 'mp3',
+        temperature: 0.8,
+        top_p: 0.8,
       }),
     });
 
     if (!res.ok) {
-      console.error('[TTS] OpenAI error:', res.status, await res.text());
+      console.error('[TTS] Fish Audio error:', res.status, await res.text());
       return NextResponse.json({ error: 'TTS generation failed' }, { status: 502 });
     }
 

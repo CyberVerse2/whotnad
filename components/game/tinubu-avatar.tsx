@@ -1,21 +1,21 @@
 'use client';
 
-interface GojoAvatarProps {
+interface TinubuAvatarProps {
   size?: number;
   isThinking?: boolean;
   eyesActive?: boolean;
   className?: string;
 }
 
-export function GojoAvatar({
+export function TinubuAvatar({
   size = 28,
   isThinking = false,
   eyesActive = false,
   className = '',
-}: GojoAvatarProps) {
+}: TinubuAvatarProps) {
   return (
     <div
-      className={`${eyesActive ? 'animate-gojo-eyes' : ''} ${className}`}
+      className={`${eyesActive ? 'animate-tinubu-eyes' : ''} ${className}`}
       style={{
         width: size,
         height: size,
@@ -28,8 +28,8 @@ export function GojoAvatar({
       }}
     >
       <img
-        src="/gojo.jpg"
-        alt="Gojo"
+        src="/tinubu.jpg"
+        alt="Tinubu"
         width={size}
         height={size}
         style={{

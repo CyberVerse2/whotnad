@@ -38,7 +38,7 @@ export default function Home() {
                 color: '#fff',
                 letterSpacing: '0.05em',
               }}>
-              PLAY GOJO
+              PLAY TINUBU
             </Link>
             <Link href="#rules"
               className="font-display text-sm font-medium px-6 py-4 transition-colors"
@@ -56,7 +56,7 @@ export default function Home() {
             <div className="w-px h-8" style={{ background: 'var(--surface-3)' }} />
             <StakeStat label="SEASONS" value="WEEKLY" accent />
             <div className="w-px h-8" style={{ background: 'var(--surface-3)' }} />
-            <StakeStat label="AI" value="GOJO" />
+            <StakeStat label="AI" value="TINUBU" />
           </div>
         </div>
 

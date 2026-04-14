@@ -241,21 +241,21 @@ export function stopTensionDrone() {
   } catch { /* ignore */ }
 }
 
-// ── Gojo TTS voice ──
+// ── Tinubu TTS voice ──
 
-let currentGojoAudio: HTMLAudioElement | null = null;
+let currentTinubuAudio: HTMLAudioElement | null = null;
 
 /**
- * Speak a line as Gojo using OpenAI TTS.
+ * Speak a line as Tinubu using Fish Audio TTS.
  * Cancels any currently playing voice line.
  */
-export async function playGojoVoice(text: string): Promise<void> {
+export async function playTinubuVoice(text: string): Promise<void> {
   if (!text) return;
 
   // Stop any currently playing line
-  if (currentGojoAudio) {
-    currentGojoAudio.pause();
-    currentGojoAudio = null;
+  if (currentTinubuAudio) {
+    currentTinubuAudio.pause();
+    currentTinubuAudio = null;
   }
 
   try {
@@ -271,11 +271,11 @@ export async function playGojoVoice(text: string): Promise<void> {
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audio.volume = 0.7;
-    currentGojoAudio = audio;
+    currentTinubuAudio = audio;
 
     audio.onended = () => {
       URL.revokeObjectURL(url);
-      if (currentGojoAudio === audio) currentGojoAudio = null;
+      if (currentTinubuAudio === audio) currentTinubuAudio = null;
     };
 
     await audio.play();

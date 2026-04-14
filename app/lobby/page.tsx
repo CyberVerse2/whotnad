@@ -74,7 +74,7 @@ export default function LobbyPage() {
         <span className="font-display" style={{
           fontSize: 14, fontWeight: 700, color: 'var(--gold-base)', letterSpacing: '0.08em',
         }}>
-          GOJO ACCEPTED YOUR CHALLENGE
+          TINUBU ACCEPTED YOUR CHALLENGE
         </span>
       </div>
     );
@@ -161,8 +161,8 @@ export default function LobbyPage() {
             {/* Avatar + name */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
               <img
-                src="/gojo.jpg"
-                alt="Satoru Gojo"
+                src="/tinubu.jpg"
+                alt="Tinubu"
                 style={{
                   width: 80,
                   height: 80,
@@ -186,7 +186,7 @@ export default function LobbyPage() {
                 color: 'var(--text-primary)',
                 letterSpacing: '0.04em',
               }}>
-                SATORU GOJO
+                BOLA TINUBU
               </span>
             </div>
 
@@ -314,7 +314,7 @@ export default function LobbyPage() {
             onMouseEnter={(e) => connected && (e.currentTarget.style.transform = 'scale(1.02)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            PLAY GOJO
+            PLAY TINUBU
           </button>
         </div>
       )}
@@ -342,7 +342,7 @@ export default function LobbyPage() {
               color: 'var(--text-primary)',
               letterSpacing: '0.05em',
             }}>
-              GOJO IS GETTING READY...
+              TINUBU IS GETTING READY...
             </span>
           </div>
           <button

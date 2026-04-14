@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { Card, CardBack, SHAPE_STYLES } from './card';
 import { ShapePicker } from './shape-picker';
 import { EffectsOverlay, type EffectsOverlayHandle } from './effects-overlay';
-import { GojoAvatar } from './gojo-avatar';
+import { TinubuAvatar } from './tinubu-avatar';
 import { ComboMeter } from './combo-meter';
 import { useGameEffects } from '@/hooks/use-game-effects';
 import {
@@ -60,13 +60,13 @@ export function Board({
   const boardRef = useRef<HTMLDivElement>(null);
   const effectsRef = useRef<EffectsOverlayHandle>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const gojoAvatarRef = useRef<HTMLDivElement>(null);
+  const tinubuAvatarRef = useRef<HTMLDivElement>(null);
   const marketRef = useRef<HTMLButtonElement>(null);
 
   const {
     boardClassName,
     overlayClassName,
-    gojoEyesActive,
+    tinubuEyesActive,
     marketUrgent,
     comboCount,
     onCardPlayed,
@@ -74,7 +74,7 @@ export function Board({
     gameState,
     userId,
     effectsRef.current?.engine ?? null,
-    { boardRef, overlayRef, gojoAvatarRef, topCardRef, marketRef }
+    { boardRef, overlayRef, tinubuAvatarRef, topCardRef, marketRef }
   );
 
   // Detect when opponent finishes their turn → it becomes our turn
@@ -234,11 +234,11 @@ export function Board({
           flexWrap: 'wrap',
           gap: 8,
         }}>
-          <div ref={gojoAvatarRef} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <GojoAvatar
+          <div ref={tinubuAvatarRef} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <TinubuAvatar
               size={28}
               isThinking={!gameState.isMyTurn && gameState.status === 'active'}
-              eyesActive={gojoEyesActive}
+              eyesActive={tinubuEyesActive}
             />
             <span className="font-display" style={{
               fontSize: 13,
@@ -246,7 +246,7 @@ export function Board({
               color: 'var(--text-secondary)',
               letterSpacing: '0.06em',
             }}>
-              SATORU GOJO — {gameState.opponentCardCount} CARDS
+              TINUBU — {gameState.opponentCardCount} CARDS
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -472,7 +472,7 @@ export function Board({
             }}>
               {gameState.isMyTurn
                 ? `YOU MUST DRAW ${gameState.pendingDraws} OR PLAY A ${gameState.pendingDrawType}`
-                : `GOJO OWES +${gameState.pendingDraws} CARDS`
+                : `TINUBU OWES +${gameState.pendingDraws} CARDS`
               }
             </p>
           )}

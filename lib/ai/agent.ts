@@ -11,7 +11,7 @@ interface AIMove {
 const SHAPES: Shape[] = ['circle', 'triangle', 'cross', 'square', 'star'];
 
 /**
- * Gojo's brain — a scoring-based strategy engine.
+ * Tinubu's brain — a scoring-based strategy engine.
  * Evaluates every legal move and picks the highest-scoring one.
  * Instant, deterministic, and ruthlessly effective.
  */

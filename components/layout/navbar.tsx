@@ -16,9 +16,9 @@ export function Navbar() {
           Leaderboard
         </Link>
 
-        {/* Gojo's stats — always visible */}
+        {/* Tinubu's stats — always visible */}
         <Link
-          href="/profile/gojo"
+          href="/profile/tinubu"
           style={{
             fontSize: 12,
             fontWeight: 600,
@@ -32,7 +32,7 @@ export function Navbar() {
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface-1)')}
         >
-          Gojo
+          Tinubu
         </Link>
 
         <Link href="/lobby"

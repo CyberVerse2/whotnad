@@ -7,7 +7,7 @@ import { fetchDrandBeacon } from '@/lib/drand/client';
 import { computeDeckHash } from '@/lib/game-engine/shuffle';
 import { getHandValue } from '@/lib/game-engine/cards';
 import { getAIMove } from '@/lib/ai/agent';
-import { getGojoTrashTalk } from '@/lib/ai/strategy';
+import { getTinubuTrashTalk } from '@/lib/ai/strategy';
 import { logAgentAction, logAgentError, logAgentThoughtTrace } from '@/lib/ai/logger';
 import { db } from '@/lib/db';
 import { matchmakingQueue, matches, users } from '@/lib/db/schema';
@@ -198,7 +198,7 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
 
     const topCard = state.discardPile[state.discardPile.length - 1];
     const agentView = buildAgentView(game.state, agentId);
-    const llmThought = await getGojoTrashTalk(agentView, move, cardPlayed ?? null);
+    const llmThought = await getTinubuTrashTalk(agentView, move, cardPlayed ?? null);
     game.lastAgentThought = llmThought ?? buildAgentThought(move, cardPlayed ?? null, topCard, hand, state);
     logAgentThoughtTrace(matchId, agentId, game.lastAgentThought, game.lastAgentThinkMs ?? 0);
 
@@ -222,7 +222,7 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
     const errMsg = err instanceof Error ? err.message : String(err);
     logAgentError(matchId, agentId, `Move "${move.action}" invalid: ${errMsg} — falling back to draw`);
     console.warn(`[Agent] Move "${move.action}" invalid, falling back to draw:`, errMsg);
-    game.lastAgentThought = GOJO_FALLBACK_THOUGHT;
+    game.lastAgentThought = TINUBU_FALLBACK_THOUGHT;
     logAgentThoughtTrace(matchId, agentId, game.lastAgentThought, game.lastAgentThinkMs ?? 0);
     game.state = applyTurn(state, agentId, { type: 'draw' });
     logAgentAction(matchId, agentId, 'draw (fallback)', true, 'Fallback after invalid move');
@@ -230,68 +230,78 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
   }
 }
 
-// ── Gojo's trash talk lines, categorized by game situation ──
+// ── Tinubu's trash talk lines, categorized by game situation ──
+// Each line includes Fish Audio emotion tags for expressive TTS.
 
-const GOJO_DRAW_LINES = [
-  "Tch. Even the strongest has to go to market sometimes.",
-  "Drawing? Don't get cocky — I'm just building up for something big.",
-  "Relax, this is all part of the plan. Probably.",
-  "I'll take one from market. Consider it a handicap.",
-  "Even I can't play what I don't have. Yet.",
+const TINUBU_DRAW_LINES = [
+  "[calm] Even the Jagaban goes to market sometimes. It's called strategy.",
+  "[calm] I'm drawing a card, not retreating. A common screwdriver can create a path to fortune.",
+  "[confident] Relax, this is all part of the plan. Emi lokan — it's still my turn.",
+  "[calm] No matter how short you are, you get out, you will see the sky. I'll draw and still win.",
+  "[confident] Drawing from market is not defeat. A dead fish cannot be sweet in any soup — but I'm very much alive.",
+  "[calm] Is it for eba? Is it for garri? No, it's for my comeback.",
+  "[confident] They said Tinubu can't win. I drew from market and became president. Watch me.",
 ];
 
-const GOJO_DRAW_PENALTY_LINES = [
-  "Fine, I'll take the penalty. Enjoy it — it won't last.",
-  "You think {count} cards scares me? Nah, I'd still win.",
-  "Oh? You actually got me. Don't let it go to your head.",
-  "Taking {count} cards. The comeback will be legendary.",
+const TINUBU_DRAW_PENALTY_LINES = [
+  "[slightly frustrated] Fine, I'll take the {count} cards. Enjoy it while it lasts — emi lokan next round.",
+  "[confident] You think {count} cards scares the Jagaban? Nah, I'd still win.",
+  "[surprised] Oh? You actually got me. Don't let it go to your head — I went to meet Buhari in Kaduna with worse odds.",
+  "[slightly frustrated] Taking {count} cards. The comeback will be bala blu blu blu bulaba — legendary.",
+  "[calm] {count} cards penalty? We can be squeaky like old mama's car, but we will never break apart.",
 ];
 
-const GOJO_WHOT_LINES = [
-  "Whot! 💫 I choose {shape}. Try to keep up.",
-  "Whot card goes brrr. {shape} it is. You're welcome.",
-  "Throughout heaven and earth, I alone decide the shape. {shape}.",
-  "Whot! Calling {shape}. This game's already over, you just don't know it yet.",
+const TINUBU_WHOT_LINES = [
+  "[confident] Whot! I choose {shape}. Emi lokan — I alone decide the shape of this game.",
+  "[confident] Whot card! {shape} it is. Throughout this table, the Jagaban decides.",
+  "[excited] Whot! Calling {shape}. This game's already over — you just don't know it yet.",
+  "[confident] Whot! {shape}. Let the poor breathe... but not at this table.",
+  "[confident] Whot! Na me get this table. {shape} — try to keep up.",
 ];
 
-const GOJO_SKIP_LINES = [
-  "Hold on — did you think it was your turn? How cute.",
-  "Sit down. The strongest is still playing.",
-  "Suspension! Take a break, you need it more than I do.",
-  "Your turn? Nah. I'd skip.",
-  "Stay right there. I'm not done yet.",
+const TINUBU_SKIP_LINES = [
+  "[sarcastic] Hold on — did you think it was your turn? Emi lokan.",
+  "[sarcastic] Sit down, my friend. The Jagaban is still playing.",
+  "[satisfied] Suspension! Take a break, you need it more than I do.",
+  "[sarcastic] Your turn? Nah. To start chaos is easy... and I just started yours.",
+  "[disdainful] Eleyi! This one thinks it's his turn. How cute.",
+  "[confident] Stay right there. I haven't finished my town hall address.",
 ];
 
-const GOJO_PICK_TWO_LINES = [
-  "Pick Two! Go shopping — my treat. 🛒",
-  "Here's a 2. The market's calling your name.",
-  "+2 for you. I'm basically doing charity work at this point.",
-  "Pick Two! Stack or suffer. Either way, I'm entertained.",
+const TINUBU_PICK_TWO_LINES = [
+  "[excited] Pick Two! Go to market — consider it my subsidy to you.",
+  "[excited] Here's a 2. They couldn't even make a down payment on roasted corn — you can't make a down payment on this.",
+  "[satisfied] Plus 2 for you. I'm basically doing charity work at this point.",
+  "[excited] Pick Two! Stack or suffer. Either way, the Jagaban is entertained.",
+  "[laughing] Pick Two! In this life, just try to avoid hullabaloo.",
 ];
 
-const GOJO_GENERAL_MARKET_LINES = [
-  "General Market! Everyone draws... well, just you actually.",
-  "Market time! Here, have a card. You clearly need help.",
-  "14 on the table. Go pick one up, I'll wait.",
+const TINUBU_GENERAL_MARKET_LINES = [
+  "[satisfied] General Market! Everyone draws... well, just you actually.",
+  "[satisfied] Market time! Here, have a card. You clearly need help — let the poor breathe.",
+  "[calm] 14 on the table. Go pick one up, I'll wait. Na your own be that.",
+  "[satisfied] General Market! I promised to share, and here — I'm sharing wahala.",
 ];
 
-const GOJO_NORMAL_PLAY_LINES = [
-  "Too easy.",
-  "This is barely a warmup.",
-  "You see this? Of course you do. Doesn't help though.",
-  "Another perfect play. I almost feel bad. Almost.",
-  "Yawn. Next.",
-  "Is this really the best challenge you've got?",
+const TINUBU_NORMAL_PLAY_LINES = [
+  "[confident] Too easy. The Jagaban moves again.",
+  "[calm] This is barely a warmup. I've survived worse in Lagos politics.",
+  "[confident] Another perfect play. A creative mind is a fertile land for growth.",
+  "[sarcastic] Yawn. Next. Is this really the best challenge you've got?",
+  "[confident] You see this? Of course you do. Doesn't help though.",
+  "[satisfied] Easy. I had a swagger this morning and I'm still swaggering.",
+  "[laughing] I wrote 11 when I meant 10 and they still re-elected me. This game is nothing.",
 ];
 
-const GOJO_LOW_CARDS_LINES = [
-  "{count} card left. The end is near... for you.",
-  "Down to {count}. Better start planning your next game.",
-  "Almost done. It'll be fine — I'm the strongest, after all. ✌️",
-  "{count} left. GG.",
+const TINUBU_LOW_CARDS_LINES = [
+  "[very excited] {count} card left. Emi lokan — the end is near... for you.",
+  "[excited] Down to {count}. Better start planning your next game, my friend.",
+  "[confident] Almost done. It'll be fine — I'm the Jagaban, after all.",
+  "[very excited] {count} left. GG. No matter how long you cling to freedom, this game is mine.",
+  "[excited] Down to {count}. Early this morning I had a swagger — and now I'm about to win.",
 ];
 
-const GOJO_FALLBACK_THOUGHT = "Hmm, that didn't work. Even geniuses improvise. Drawing instead.";
+const TINUBU_FALLBACK_THOUGHT = "[confused] Hmm, bala blu blu blu bulaba... let me draw instead.";
 
 function pick(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -306,40 +316,40 @@ function buildAgentThought(
 ): string {
   if (move.action === 'draw') {
     if (state.pendingDraws > 0) {
-      return pick(GOJO_DRAW_PENALTY_LINES).replace('{count}', String(state.pendingDraws));
+      return pick(TINUBU_DRAW_PENALTY_LINES).replace('{count}', String(state.pendingDraws));
     }
-    return pick(GOJO_DRAW_LINES);
+    return pick(TINUBU_DRAW_LINES);
   }
 
   if (move.action === 'play' && cardPlayed) {
     // Whot wild card
     if (cardPlayed.shape === 'whot') {
-      return pick(GOJO_WHOT_LINES).replace('{shape}', move.chosenShape ?? 'circle');
+      return pick(TINUBU_WHOT_LINES).replace('{shape}', move.chosenShape ?? 'circle');
     }
 
     // Skip cards (Hold On / Suspension)
     if (cardPlayed.number === 1 || cardPlayed.number === 8) {
-      return pick(GOJO_SKIP_LINES);
+      return pick(TINUBU_SKIP_LINES);
     }
 
     // Pick Two
     if (cardPlayed.number === 2) {
-      return pick(GOJO_PICK_TWO_LINES);
+      return pick(TINUBU_PICK_TWO_LINES);
     }
 
     // General Market
     if (cardPlayed.number === 14) {
-      return pick(GOJO_GENERAL_MARKET_LINES);
+      return pick(TINUBU_GENERAL_MARKET_LINES);
     }
 
     // Low card count — about to win
     const remaining = hand.length - 1;
     if (remaining <= 2 && remaining > 0) {
-      return pick(GOJO_LOW_CARDS_LINES).replace('{count}', String(remaining));
+      return pick(TINUBU_LOW_CARDS_LINES).replace('{count}', String(remaining));
     }
 
     // Normal play
-    return pick(GOJO_NORMAL_PLAY_LINES);
+    return pick(TINUBU_NORMAL_PLAY_LINES);
   }
 
   return 'Making a move...';

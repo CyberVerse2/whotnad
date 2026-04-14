@@ -6,7 +6,7 @@ import { or, like, eq, desc, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function GojoProfilePage() {
+export default async function TinubuProfilePage() {
   let stats = { totalGames: 0, wins: 0, losses: 0, totalPoints: 0, avgTurns: 0, winRate: 0 };
   let recentMatches: Array<{
     id: string;
@@ -94,8 +94,8 @@ export default async function GojoProfilePage() {
           display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32,
         }}>
           <Image
-            src="/gojo.jpg"
-            alt="Gojo"
+            src="/tinubu.jpg"
+            alt="Tinubu"
             width={64}
             height={64}
             style={{ borderRadius: '50%', objectFit: 'cover' }}
@@ -104,10 +104,10 @@ export default async function GojoProfilePage() {
             <h1 className="font-display" style={{
               fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 2,
             }}>
-              GOJO
+              TINUBU
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              No one could beat me - Except Gojo of course
+              Emi lokan! Nobody can beat the Jagaban at this table.
             </p>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default async function GojoProfilePage() {
                 NO MATCHES YET
               </p>
               <Link href="/lobby" style={{ color: 'var(--accent)', fontSize: 13, textDecoration: 'none' }}>
-                Challenge Gojo
+                Challenge Tinubu
               </Link>
             </div>
           ) : (

@@ -395,7 +395,7 @@ button:active:not(:disabled), [role="button"]:active, a[style*="background"]:act
     linear-gradient(-60deg, transparent 50%, rgba(255,255,255,0.07) 50.5%, transparent 51%);
 }
 
-/* ── Domain Expansion (Gojo devastation) ── */
+/* ── Domain Expansion (Tinubu devastation) ── */
 @keyframes domain-expand {
   0% { opacity: 0; transform: scale(0); }
   15% { opacity: 0.85; transform: scale(1.1); }
@@ -467,15 +467,15 @@ button:active:not(:disabled), [role="button"]:active, a[style*="background"]:act
   animation: market-urgent 1s ease-in-out infinite;
 }
 
-/* ── Gojo eyes glow (skip cards) ── */
-@keyframes gojo-eyes-glow {
+/* ── Tinubu eyes glow (skip cards) ── */
+@keyframes tinubu-eyes-glow {
   0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
   30% { box-shadow: 0 0 20px 8px rgba(139, 92, 246, 0.5), 0 0 40px 16px rgba(99, 102, 241, 0.2); }
   100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 }
 
-.animate-gojo-eyes {
-  animation: gojo-eyes-glow 1.5s var(--ease-out-expo);
+.animate-tinubu-eyes {
+  animation: tinubu-eyes-glow 1.5s var(--ease-out-expo);
 }
 
 /* ── Board tint (winning/losing atmosphere) ── */

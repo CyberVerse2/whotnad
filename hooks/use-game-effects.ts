@@ -31,7 +31,7 @@ const SHAPE_COLOR_LIST = ['#4DA6E8', '#B47AE8', '#2ECC71', '#E8923A', '#E74C3C']
 interface GameEffectsRefs {
   boardRef: React.RefObject<HTMLElement | null>;
   overlayRef: React.RefObject<HTMLElement | null>;
-  gojoAvatarRef: React.RefObject<HTMLElement | null>;
+  tinubuAvatarRef: React.RefObject<HTMLElement | null>;
   topCardRef: React.RefObject<HTMLElement | null>;
   marketRef: React.RefObject<HTMLElement | null>;
 }
@@ -39,7 +39,7 @@ interface GameEffectsRefs {
 interface GameEffectsResult {
   boardClassName: string;
   overlayClassName: string;
-  gojoEyesActive: boolean;
+  tinubuEyesActive: boolean;
   marketUrgent: boolean;
   comboCount: number;
   showDomainExpansion: boolean;
@@ -54,8 +54,8 @@ export function useGameEffects(
 ): GameEffectsResult {
   const prevState = useRef<PlayerGameView | null>(null);
   const comboCount = useRef(0);
-  const gojoEyesActive = useRef(false);
-  const gojoEyesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tinubuEyesActive = useRef(false);
+  const tinubuEyesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const domainActive = useRef(false);
   const domainTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lightningInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -123,7 +123,7 @@ export function useGameEffects(
         comboCount.current++;
         soundComboHit(comboCount.current);
 
-        // Domain Expansion — Gojo Pick Two when player is low
+        // Domain Expansion — Tinubu Pick Two when player is low
         if (myCards <= 3 && canFire('domain', 3000)) {
           domainActive.current = true;
           if (domainTimer.current) clearTimeout(domainTimer.current);
@@ -133,12 +133,12 @@ export function useGameEffects(
         }
       }
 
-      // Skip cards — Gojo eyes
+      // Skip cards — Tinubu eyes
       if ((cardNum === 1 || cardNum === 8) && canFire('eyes')) {
-        gojoEyesActive.current = true;
-        if (gojoEyesTimer.current) clearTimeout(gojoEyesTimer.current);
-        gojoEyesTimer.current = setTimeout(() => {
-          gojoEyesActive.current = false;
+        tinubuEyesActive.current = true;
+        if (tinubuEyesTimer.current) clearTimeout(tinubuEyesTimer.current);
+        tinubuEyesTimer.current = setTimeout(() => {
+          tinubuEyesActive.current = false;
         }, 1500);
       }
 
@@ -155,10 +155,10 @@ export function useGameEffects(
         engine?.spawnBurst(center, SHAPE_COLORS[newTopCard.shape] ?? '#D4A017', 15);
       }
 
-      // Gojo thinking orbit particles
+      // Tinubu thinking orbit particles
       if (canFire('orbit', 2000)) {
-        const gojoCenter = getCenter(refs.gojoAvatarRef.current);
-        engine?.spawnOrbit(gojoCenter, '#8B5CF6', 6);
+        const tinubuCenter = getCenter(refs.tinubuAvatarRef.current);
+        engine?.spawnOrbit(tinubuCenter, '#8B5CF6', 6);
       }
     }
 
@@ -239,7 +239,7 @@ export function useGameEffects(
         setTimeout(() => engine?.spawnConfetti({ ...center, y: center.y - 50 }, colors, 40), 500);
         setTimeout(() => engine?.spawnConfetti({ ...center, y: center.y + 50 }, colors, 30), 1000);
       } else {
-        // LOSE — shatter + cracks + Gojo hollow purple
+        // LOSE — shatter + cracks + Tinubu victory
         soundShatter();
         flashClass(refs.overlayRef.current, 'animate-screen-crack', 4000);
         engine?.spawnShatter(center, '#E74C3C', 30);
@@ -257,7 +257,7 @@ export function useGameEffects(
       stopTensionDrone();
       clearAllFlashTimers();
       if (lightningInterval.current) clearInterval(lightningInterval.current);
-      if (gojoEyesTimer.current) clearTimeout(gojoEyesTimer.current);
+      if (tinubuEyesTimer.current) clearTimeout(tinubuEyesTimer.current);
       if (domainTimer.current) clearTimeout(domainTimer.current);
     };
   }, []);
@@ -295,7 +295,7 @@ export function useGameEffects(
   return {
     boardClassName: boardClassName.trim(),
     overlayClassName: domainActive.current ? 'animate-domain-expansion' : '',
-    gojoEyesActive: gojoEyesActive.current,
+    tinubuEyesActive: tinubuEyesActive.current,
     marketUrgent,
     comboCount: comboCount.current,
     showDomainExpansion: domainActive.current,

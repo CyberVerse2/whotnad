@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Shape } from '@/types/game';
 import type { PlayerGameView, PointsSummary, ServerMessage } from '@/types/messages';
-import { soundWin, soundLose, soundError as soundErrorFx, soundMatchFound, playGojoVoice } from '@/lib/sounds';
+import { soundWin, soundLose, soundError as soundErrorFx, soundMatchFound, playTinubuVoice } from '@/lib/sounds';
 import { useGameSocket } from './use-game-socket';
 
 export type GamePhase = 'idle' | 'queued' | 'matched' | 'playing' | 'finished';
@@ -65,11 +65,11 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   const lastSpokenThoughtRef = useRef<string | null>(null);
 
   const applyGameStatePayload = useCallback((data: GameStatePayload) => {
-    // Speak Gojo's line if it's a new thought
+    // Speak Tinubu's line if it's a new thought
     const thought = data.lastAgentThought ?? null;
     if (thought && thought !== lastSpokenThoughtRef.current) {
       lastSpokenThoughtRef.current = thought;
-      void playGojoVoice(thought);
+      void playTinubuVoice(thought);
     }
 
     if (data.view.status === 'finished') {
@@ -135,7 +135,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         const thought = msg.lastAgentThought ?? null;
         if (thought && thought !== lastSpokenThoughtRef.current) {
           lastSpokenThoughtRef.current = thought;
-          void playGojoVoice(thought);
+          void playTinubuVoice(thought);
         }
         setState((s) => ({
           ...s,
@@ -152,7 +152,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
         const thought = msg.lastAgentThought ?? null;
         if (thought && thought !== lastSpokenThoughtRef.current) {
           lastSpokenThoughtRef.current = thought;
-          void playGojoVoice(thought);
+          void playTinubuVoice(thought);
         }
         setState((s) => ({
           ...s,
