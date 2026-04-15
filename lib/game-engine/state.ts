@@ -134,7 +134,7 @@ function handlePlayCard(
   }
 
   // Apply card effect if special
-  if ([1, 2, 5, 8, 14, 20].includes(card.number)) {
+  if ([1, 2, 14, 20].includes(card.number)) {
     next = applyCardEffect(next, card, chosenShape);
   }
 
@@ -146,7 +146,7 @@ function handlePlayCard(
   }
 
   // Skip cards (1, 8, 14) let the current player go again — don't advance
-  const skipsOpponent = card.number === 1 || card.number === 8 || card.number === 14;
+  const skipsOpponent = card.number === 1 || card.number === 14;
   if (!skipsOpponent) {
     // Advance to next player
     next.currentPlayerIndex =

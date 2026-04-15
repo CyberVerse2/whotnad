@@ -21,7 +21,7 @@ export function buildSystemPrompt(): string {
 - Special cards:
   - 1 (Hold On): Skip opponent's turn
   - 2 (Pick Two): Opponent draws 2 cards. Stackable — if opponent has a 2, they can play it to pass +4 to you.
-  - 8 (Suspension): Skip opponent's turn
+  - 8: No special effect (plain card)
   - 14 (General Market): Opponent draws 1 card
 - First player to empty their hand wins.
 
@@ -103,7 +103,7 @@ export async function getTinubuTrashTalk(
       ? cardPlayed.shape === 'whot'
         ? `I played Whot! and called ${move.chosenShape}.`
         : `I played ${formatCard(cardPlayed as Card)}.${
-            cardPlayed.number === 1 || cardPlayed.number === 8 ? ' This skips their turn.' :
+            cardPlayed.number === 1 ? ' This skips their turn.' :
             cardPlayed.number === 2 ? ' They must pick two cards or stack.' :
             cardPlayed.number === 14 ? ' General Market — they draw a card.' : ''
           }`

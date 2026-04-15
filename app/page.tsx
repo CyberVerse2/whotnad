@@ -70,7 +70,6 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <SpecialCard number={1} name="HOLD ON" effect="Skip opponent" shape="●" delay={3} />
             <SpecialCard number={2} name="PICK TWO" effect="Opponent draws 2" shape="▲" delay={4} />
-            <SpecialCard number={8} name="SUSPENSION" effect="Skip opponent" shape="■" delay={6} />
             <SpecialCard number={14} name="GENERAL MARKET" effect="Opponent draws 1" shape="★" delay={7} />
             <SpecialCard number={20} name="WHOT!" effect="Wild — name a shape" shape="🌟" delay={8} />
           </div>

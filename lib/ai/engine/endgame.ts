@@ -125,8 +125,8 @@ function countWinPaths(
   for (const card of playable) {
     const remaining = hand.filter((c) => c.id !== card.id);
     const newActiveShape = card.shape === 'whot' ? getBestShape(hand, card) : null;
-    // Skip cards (1, 8, 14) let us play again
-    const isSkip = card.number === 1 || card.number === 8 || card.number === 14;
+    // Skip cards (1, 14) let us play again
+    const isSkip = card.number === 1 || card.number === 14;
 
     if (isSkip) {
       // We get to play again — continue searching
@@ -172,7 +172,7 @@ function findBestPath(
   for (const card of playable) {
     const remaining = hand.filter((c) => c.id !== card.id);
     const newActiveShape = card.shape === 'whot' ? getBestShape(hand, card) : null;
-    const isSkip = card.number === 1 || card.number === 8 || card.number === 14;
+    const isSkip = card.number === 1 || card.number === 14;
 
     if (remaining.length === 0) {
       // This play wins!

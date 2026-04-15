@@ -347,9 +347,6 @@ function applySimMove(sim: SimState, move: AIMove): void {
       sim.pendingDraws += 2;
       sim.pendingDrawType = 2;
       break;
-    case 8: // Suspension — skip opponent
-      skipOpponent = true;
-      break;
     case 14: // General Market — opponent draws 1, current player goes again
       const drawn = drawFromDeck(sim);
       if (drawn) sim.hands[otherPlayer].push(drawn);

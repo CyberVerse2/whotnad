@@ -363,7 +363,7 @@ function buildAgentThought(
     if (cardPlayed.shape === 'whot') {
       return pickLine('whot', { shape: move.chosenShape ?? 'circle' });
     }
-    if (cardPlayed.number === 1 || cardPlayed.number === 8) {
+    if (cardPlayed.number === 1) {
       return pickLine('skip');
     }
     if (cardPlayed.number === 2) {
