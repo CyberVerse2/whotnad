@@ -204,23 +204,24 @@ export default function LobbyPage() {
               <StatBox label="STREAK" value={String(agentStats.streak)} color="var(--danger)" />
             </div>
 
-            {/* Difficulty selector */}
-            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-              <DifficultyButton
-                label="HARD"
-                description="Compete on level terms"
-                active={selectedDifficulty === 'hard'}
-                color="var(--danger)"
-                onClick={() => setSelectedDifficulty('hard')}
-              />
-              <DifficultyButton
-                label="RIGGED"
-                description="It's literally rigged"
-                active={selectedDifficulty === 'rigged'}
-                color="#9333ea"
-                onClick={() => setSelectedDifficulty('rigged')}
-              />
-            </div>
+          </div>
+
+          {/* Difficulty selector — prominent, outside opponent card */}
+          <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+            <DifficultyButton
+              label="HARD"
+              description="Compete on level terms"
+              active={selectedDifficulty === 'hard'}
+              color="var(--danger)"
+              onClick={() => setSelectedDifficulty('hard')}
+            />
+            <DifficultyButton
+              label="RIGGED"
+              description="It's literally rigged"
+              active={selectedDifficulty === 'rigged'}
+              color="#9333ea"
+              onClick={() => setSelectedDifficulty('rigged')}
+            />
           </div>
 
           <button
@@ -464,23 +465,26 @@ function DifficultyButton({
       onClick={onClick}
       style={{
         flex: 1,
-        background: active ? `${color}18` : 'var(--surface-2)',
-        border: `2px solid ${active ? color : 'transparent'}`,
-        borderRadius: 8,
-        padding: '10px 8px',
+        background: active ? `${color}20` : 'var(--surface-2)',
+        border: `2px solid ${active ? color : 'var(--surface-3)'}`,
+        borderRadius: 10,
+        padding: '16px 12px',
         cursor: 'pointer',
-        transition: 'all 0.15s',
+        transition: 'all 0.2s',
+        transform: active ? 'scale(1.02)' : 'scale(1)',
       }}
+      onMouseEnter={(e) => !active && (e.currentTarget.style.borderColor = `${color}80`)}
+      onMouseLeave={(e) => !active && (e.currentTarget.style.borderColor = 'var(--surface-3)')}
     >
       <p className="font-display" style={{
-        fontSize: 11, fontWeight: 900, letterSpacing: '0.1em',
+        fontSize: 15, fontWeight: 900, letterSpacing: '0.1em',
         color: active ? color : 'var(--text-muted)',
-        marginBottom: 2,
+        marginBottom: 4,
       }}>
         {label}
       </p>
       <p style={{
-        fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.02em',
+        fontSize: 11, color: active ? 'var(--text-secondary)' : 'var(--text-muted)', letterSpacing: '0.02em',
       }}>
         {description}
       </p>

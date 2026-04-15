@@ -1,34 +1,36 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getCurrentSeason, getLeaderboard } from '@/lib/seasons/manager';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { inArray } from 'drizzle-orm';
 
-export const dynamic = 'force-dynamic';
+type Difficulty = 'hard' | 'rigged';
 
-export default async function LeaderboardPage() {
-  let season;
-  let entries: Awaited<ReturnType<typeof getLeaderboard>> = [];
-  let userMap: Record<string, { displayName: string | null }> = {};
+interface LeaderboardEntry {
+  rank: number;
+  username: string;
+  wins: number;
+  losses: number;
+  totalPoints: number;
+}
 
-  try {
-    season = await getCurrentSeason();
-    entries = await getLeaderboard(season.id);
+export default function LeaderboardPage() {
+  const [tab, setTab] = useState<Difficulty>('hard');
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    if (entries.length > 0) {
-      const userIds = entries.map((e) => e.userId);
-      const userRows = await db
-        .select({ id: users.id, displayName: users.displayName })
-        .from(users)
-        .where(inArray(users.id, userIds));
-
-      for (const u of userRows) {
-        userMap[u.id] = { displayName: u.displayName };
-      }
-    }
-  } catch {
-    // DB not available — show empty state
-  }
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/leaderboard?difficulty=${tab}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setEntries(data.entries ?? []);
+        setLoading(false);
+      })
+      .catch(() => {
+        setEntries([]);
+        setLoading(false);
+      });
+  }, [tab]);
 
   return (
     <div className="felt-texture" style={{ minHeight: '100vh' }}>
@@ -78,10 +80,57 @@ export default async function LeaderboardPage() {
           <p style={{
             color: 'var(--text-muted)',
             fontSize: 14,
-            marginBottom: 32,
+            marginBottom: 24,
           }}>
-            Weekly season. Resets every Monday.
+            Top players by wins. Prove you can beat the Jagaban.
           </p>
+        </div>
+
+        {/* Difficulty tabs */}
+        <div className="animate-slide-up stagger-1" style={{
+          display: 'flex',
+          gap: 0,
+          marginBottom: 24,
+          borderRadius: 8,
+          overflow: 'hidden',
+          border: '1px solid var(--surface-3)',
+        }}>
+          <button
+            onClick={() => setTab('hard')}
+            style={{
+              flex: 1,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800,
+              fontSize: 13,
+              letterSpacing: '0.08em',
+              padding: '14px 0',
+              border: 'none',
+              cursor: 'pointer',
+              background: tab === 'hard' ? 'var(--danger)' : 'var(--surface-1)',
+              color: tab === 'hard' ? '#fff' : 'var(--text-muted)',
+              transition: 'background 0.2s, color 0.2s',
+            }}
+          >
+            HARD MODE
+          </button>
+          <button
+            onClick={() => setTab('rigged')}
+            style={{
+              flex: 1,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800,
+              fontSize: 13,
+              letterSpacing: '0.08em',
+              padding: '14px 0',
+              border: 'none',
+              cursor: 'pointer',
+              background: tab === 'rigged' ? '#9333ea' : 'var(--surface-1)',
+              color: tab === 'rigged' ? '#fff' : 'var(--text-muted)',
+              transition: 'background 0.2s, color 0.2s',
+            }}
+          >
+            RIGGED MODE
+          </button>
         </div>
 
         {/* Table header */}
@@ -98,7 +147,20 @@ export default async function LeaderboardPage() {
           <span className="font-display" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.1em', textAlign: 'right' }}>W/L</span>
         </div>
 
-        {entries.length === 0 ? (
+        {loading ? (
+          <div style={{
+            background: 'var(--surface-1)',
+            borderRadius: 6,
+            padding: '48px 24px',
+            textAlign: 'center',
+          }}>
+            <p className="font-display" style={{
+              fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em',
+            }}>
+              LOADING...
+            </p>
+          </div>
+        ) : entries.length === 0 ? (
           <div className="animate-slide-up stagger-2" style={{
             background: 'var(--surface-1)',
             borderRadius: 6,
@@ -106,127 +168,55 @@ export default async function LeaderboardPage() {
             textAlign: 'center',
           }}>
             <p className="font-display" style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              letterSpacing: '0.05em',
-              marginBottom: 8,
+              fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em', marginBottom: 8,
             }}>
               NO GAMES YET
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              Be the first to play this season.
+              Be the first to win on {tab === 'rigged' ? 'rigged' : 'hard'} mode.
             </p>
           </div>
         ) : (
           <div className="animate-slide-up stagger-2" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {entries.map((entry, i) => {
-              const user = userMap[entry.userId];
-              const label = user?.displayName || 'Player';
-              const rank = i + 1;
-
-              return (
-                <div
-                  key={entry.id}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '40px 1fr 80px 80px',
-                    gap: 8,
-                    padding: '12px 12px',
-                    background: rank <= 3 ? 'var(--surface-1)' : 'transparent',
-                    borderRadius: 6,
-                  }}
-                >
-                  <span className="font-display" style={{
-                    fontSize: 14,
-                    fontWeight: 900,
-                    color: rank === 1 ? 'var(--gold-base)' : rank <= 3 ? 'var(--accent)' : 'var(--text-muted)',
-                  }}>
-                    {rank}
-                  </span>
-                  <span style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {label}
-                  </span>
-                  <span className="font-display" style={{
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color: 'var(--text-primary)',
-                    textAlign: 'right',
-                  }}>
-                    {entry.totalPoints}
-                  </span>
-                  <span style={{
-                    fontSize: 13,
-                    color: 'var(--text-secondary)',
-                    textAlign: 'right',
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
-                    {entry.wins}/{entry.losses}
-                  </span>
-                </div>
-              );
-            })}
+            {entries.map((entry) => (
+              <div
+                key={`${entry.username}-${entry.rank}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '40px 1fr 80px 80px',
+                  gap: 8,
+                  padding: '12px 12px',
+                  background: entry.rank <= 3 ? 'var(--surface-1)' : 'transparent',
+                  borderRadius: 6,
+                }}
+              >
+                <span className="font-display" style={{
+                  fontSize: 14, fontWeight: 900,
+                  color: entry.rank === 1 ? 'var(--gold-base)' : entry.rank <= 3 ? 'var(--accent)' : 'var(--text-muted)',
+                }}>
+                  {entry.rank}
+                </span>
+                <span style={{
+                  fontSize: 14, fontWeight: 600, color: 'var(--text-primary)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {entry.username}
+                </span>
+                <span className="font-display" style={{
+                  fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', textAlign: 'right',
+                }}>
+                  {entry.totalPoints}
+                </span>
+                <span style={{
+                  fontSize: 13, color: 'var(--text-secondary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {entry.wins}/{entry.losses}
+                </span>
+              </div>
+            ))}
           </div>
         )}
-
-        {/* Badges */}
-        <div className="animate-slide-up stagger-3" style={{ marginTop: 48 }}>
-          <h2 className="font-display" style={{
-            fontSize: 18,
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            letterSpacing: '0.05em',
-            marginBottom: 16,
-          }}>
-            SEASON BADGES
-          </h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 8,
-          }}>
-            <BadgeItem emoji="&#x1F3C6;" name="CHAMPION" desc="#1 on leaderboard" />
-            <BadgeItem emoji="&#x26A1;" name="SPEEDSTER" desc="Highest avg speed bonus" />
-            <BadgeItem emoji="&#x1F480;" name="RUTHLESS" desc="Highest avg dominance" />
-            <BadgeItem emoji="&#x1F525;" name="UNSTOPPABLE" desc="Longest win streak" />
-            <BadgeItem emoji="&#x1F916;" name="AGENT SLAYER" desc="Most AI wins" />
-            <BadgeItem emoji="&#x1F451;" name="VETERAN" desc="5+ consecutive seasons" />
-          </div>
-        </div>
       </main>
-    </div>
-  );
-}
-
-function BadgeItem({ emoji, name, desc }: { emoji: string; name: string; desc: string }) {
-  return (
-    <div style={{
-      background: 'var(--surface-1)',
-      borderRadius: 6,
-      padding: '12px 14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-    }}>
-      <span style={{ fontSize: 20 }}>{emoji}</span>
-      <div>
-        <p className="font-display" style={{
-          fontSize: 11,
-          fontWeight: 800,
-          color: 'var(--text-primary)',
-          letterSpacing: '0.06em',
-        }}>
-          {name}
-        </p>
-        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</p>
-      </div>
     </div>
   );
 }
