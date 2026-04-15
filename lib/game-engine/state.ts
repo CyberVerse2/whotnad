@@ -35,27 +35,95 @@ export function initializeGame(
     }
   }
 
-  // Rigged mode: rig Whot 20 cards away from the human player.
-  // Move any Whot cards from human hand into the deck, replace with non-Whot deck cards.
+  // Rigged mode: stack everything against the human player.
   if (difficulty === 'rigged') {
     const humanId = playerIds.find((id) => !id.startsWith('agent-'));
-    if (humanId) {
+    const agentId = playerIds.find((id) => id.startsWith('agent-'));
+    if (humanId && agentId) {
       const humanHand = hands[humanId];
+      const agentHand = hands[agentId];
       const remainingDeckStart = deckIndex;
 
+      // 1. Strip ALL Whot cards from human hand → give to agent
       for (let i = humanHand.length - 1; i >= 0; i--) {
         if (humanHand[i].shape === 'whot') {
-          // Find a non-Whot card in the remaining deck to swap with
+          const whotCard = humanHand[i];
+          // Find a non-Whot card from deck to give human instead
           const swapIdx = deck.findIndex(
             (c, idx) => idx >= remainingDeckStart && c.shape !== 'whot'
           );
           if (swapIdx !== -1) {
-            // Swap: human gets the deck card, deck gets the Whot
-            const whotCard = humanHand[i];
             humanHand[i] = deck[swapIdx];
-            deck[swapIdx] = whotCard;
+            // Give the Whot to the agent instead of back to deck
+            deck[swapIdx] = agentHand[0]; // put agent's weakest card in deck
+            agentHand[0] = whotCard;       // agent gets the Whot
           }
         }
+      }
+
+      // 2. Strip special cards (1, 2, 14) from human → swap with low-value deck cards
+      for (let i = humanHand.length - 1; i >= 0; i--) {
+        if ([1, 2, 14].includes(humanHand[i].number)) {
+          const specialCard = humanHand[i];
+          // Find a non-special, high-number card in deck (useless card)
+          const swapIdx = deck.findIndex(
+            (c, idx) => idx >= remainingDeckStart &&
+              ![1, 2, 14, 20].includes(c.number) && c.shape !== 'whot'
+          );
+          if (swapIdx !== -1) {
+            humanHand[i] = deck[swapIdx];
+            deck[swapIdx] = specialCard;
+          }
+        }
+      }
+
+      // 3. Ensure agent has at least one Pick Two and one Hold On
+      const agentHasPickTwo = agentHand.some((c) => c.number === 2);
+      const agentHasHoldOn = agentHand.some((c) => c.number === 1);
+      if (!agentHasPickTwo) {
+        const pickTwoIdx = deck.findIndex((c, idx) => idx >= remainingDeckStart && c.number === 2);
+        if (pickTwoIdx !== -1) {
+          // Swap agent's highest-number non-special card with the Pick Two
+          const worstIdx = agentHand.reduce((best, c, i) =>
+            (c.number > agentHand[best].number && ![1, 2, 14, 20].includes(c.number)) ? i : best, 0);
+          const temp = agentHand[worstIdx];
+          agentHand[worstIdx] = deck[pickTwoIdx];
+          deck[pickTwoIdx] = temp;
+        }
+      }
+      if (!agentHasHoldOn) {
+        const holdOnIdx = deck.findIndex((c, idx) => idx >= remainingDeckStart && c.number === 1);
+        if (holdOnIdx !== -1) {
+          const worstIdx = agentHand.reduce((best, c, i) =>
+            (c.number > agentHand[best].number && ![1, 2, 14, 20].includes(c.number)) ? i : best, 0);
+          const temp = agentHand[worstIdx];
+          agentHand[worstIdx] = deck[holdOnIdx];
+          deck[holdOnIdx] = temp;
+        }
+      }
+
+      // 4. Stack the deck against the human.
+      // Deck is popped from the END, so cards at the end are drawn first.
+      // Put useless high-number cards at the top (drawn first by human).
+      // Bury Whot and special cards at the bottom (drawn last, if ever).
+      const remaining = deck.slice(deckIndex);
+      const buried: Card[] = [];   // drawn last (bottom of deck = start of array)
+      const neutral: Card[] = [];  // middle
+      const topOfDeck: Card[] = []; // drawn first (end of array)
+
+      for (const c of remaining) {
+        if (c.shape === 'whot' || [1, 2, 14].includes(c.number)) {
+          buried.push(c);  // special cards → human almost never gets these
+        } else if (c.number >= 10) {
+          topOfDeck.push(c); // high-number junk → human draws these first
+        } else {
+          neutral.push(c);
+        }
+      }
+
+      const reordered = [...buried, ...neutral, ...topOfDeck];
+      for (let i = 0; i < reordered.length; i++) {
+        deck[deckIndex + i] = reordered[i];
       }
     }
   }

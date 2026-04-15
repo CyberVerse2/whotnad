@@ -82,7 +82,10 @@ export async function getAIMove(view: AgentGameView): Promise<AIMove> {
   const legalMoves: AIMove[] = [];
   for (const card of playable) {
     if (card.shape === 'whot') {
-      const bestShape = pickSmartShape(aiState.hand, card, opponentModel);
+      // Rigged mode: pick the shape opponent has ZERO of (if we can see their hand)
+      const bestShape = (view.difficulty === 'rigged' && view.opponentHand)
+        ? pickDeadlyShape(aiState.hand, card, view.opponentHand)
+        : pickSmartShape(aiState.hand, card, opponentModel);
       legalMoves.push({ action: 'play', cardId: card.id, chosenShape: bestShape });
     } else {
       legalMoves.push({ action: 'play', cardId: card.id });
@@ -94,13 +97,15 @@ export async function getAIMove(view: AgentGameView): Promise<AIMove> {
     return legalMoves[0];
   }
 
-  // Layer 6: endgame exhaustive search at ≤4 cards
-  if (aiState.hand.length <= 4) {
+  // Layer 6: endgame exhaustive search — rigged gets deeper search (≤6 cards)
+  const endgameThreshold = view.difficulty === 'rigged' ? 6 : 4;
+  if (aiState.hand.length <= endgameThreshold) {
     return endgameSelectMove(aiState, legalMoves, opponentModel);
   }
 
-  // Layer 3: MCTS with determinization
-  return mctsSelectMove(aiState, legalMoves, opponentModel, 1500);
+  // Layer 3: MCTS — rigged gets more time since perfect info makes each iteration more valuable
+  const mctsTime = view.difficulty === 'rigged' ? 2500 : 1500;
+  return mctsSelectMove(aiState, legalMoves, opponentModel, mctsTime);
 }
 
 /**
@@ -134,6 +139,42 @@ function pickSmartShape(hand: Card[], whotCard: Card, model: OpponentModel): Sha
       if (key.startsWith(shape + '-')) oppStrength += prob;
     }
     score -= oppStrength * 2;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestShape = shape;
+    }
+  }
+
+  return bestShape;
+}
+
+/**
+ * Rigged mode: pick the shape that causes maximum damage.
+ * Finds a shape the opponent has ZERO cards of AND that we have many of.
+ */
+function pickDeadlyShape(hand: Card[], whotCard: Card, opponentHand: Card[]): Shape {
+  // Count opponent's cards per shape
+  const oppCounts: Record<Shape, number> = { circle: 0, triangle: 0, cross: 0, square: 0, star: 0 };
+  for (const c of opponentHand) {
+    if (c.shape !== 'whot') oppCounts[c.shape as Shape]++;
+  }
+
+  // Count our cards per shape
+  const myCounts: Record<Shape, number> = { circle: 0, triangle: 0, cross: 0, square: 0, star: 0 };
+  for (const c of hand) {
+    if (c.id === whotCard.id || c.shape === 'whot') continue;
+    myCounts[c.shape as Shape]++;
+  }
+
+  let bestShape: Shape = 'circle';
+  let bestScore = -Infinity;
+
+  for (const shape of SHAPES) {
+    // Massive bonus for shapes opponent has ZERO of — forces them to draw
+    let score = oppCounts[shape] === 0 ? 100 : -oppCounts[shape] * 10;
+    // Also prefer shapes we have many of for follow-up plays
+    score += myCounts[shape] * 3;
 
     if (score > bestScore) {
       bestScore = score;
