@@ -217,7 +217,7 @@ export default function LobbyPage() {
             />
             <DifficultyButton
               label="NIGERIAN"
-              description="It's literally rigged"
+              description=""
               active={selectedDifficulty === 'nigerian'}
               color="#9333ea"
               onClick={() => setSelectedDifficulty('nigerian')}

@@ -38,6 +38,7 @@ export interface PlayerGameView {
   turnCount: number;
   status: GameStatus;
   winner: string | null;
+  difficulty: 'hard' | 'nigerian';
 }
 
 export interface PointsSummary {

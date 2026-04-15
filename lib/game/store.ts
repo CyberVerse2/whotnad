@@ -882,6 +882,7 @@ function buildGameStateResponse(game: ActiveGame, userId: string) {
     turnCount: raw.turnCount as number,
     status: raw.status as PlayerGameView['status'],
     winner: raw.winner as string | null,
+    difficulty: (game.state.difficulty ?? 'hard') as PlayerGameView['difficulty'],
   };
 
   return {

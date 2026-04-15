@@ -86,7 +86,7 @@ function PlayPageContent() {
   if (phase === 'finished' && gameState && points) {
     const isWinner = winner === userId;
     return (
-      <WinLoseScreen isWinner={isWinner} points={points} resetGame={resetGame} />
+      <WinLoseScreen isWinner={isWinner} points={points} resetGame={resetGame} difficulty={gameState.difficulty ?? 'hard'} />
     );
   }
 
@@ -170,10 +170,12 @@ function WinLoseScreen({
   isWinner,
   points,
   resetGame,
+  difficulty,
 }: {
   isWinner: boolean;
   points: { basePoints: number; loserPoints: number; dominanceBonus: number; speedBonus: number; streakMultiplier: number; winnerPoints: number };
   resetGame: () => void;
+  difficulty: 'hard' | 'nigerian';
 }) {
   const { canvasRef, engine } = useParticleCanvas();
 
@@ -222,6 +224,28 @@ function WinLoseScreen({
       }}>
         {isWinner ? 'YOU WIN' : 'YOU LOSE'}
       </h1>
+
+      <div className="animate-slide-up stagger-1" style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        background: difficulty === 'nigerian' ? '#9333ea30' : 'var(--danger)20',
+        border: `1px solid ${difficulty === 'nigerian' ? '#9333ea' : 'var(--danger)'}`,
+        borderRadius: 20,
+        padding: '6px 16px',
+        zIndex: 91,
+      }}>
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: difficulty === 'nigerian' ? '#9333ea' : 'var(--danger)',
+        }} />
+        <span className="font-display" style={{
+          fontSize: 11, fontWeight: 800, letterSpacing: '0.1em',
+          color: difficulty === 'nigerian' ? '#9333ea' : 'var(--danger)',
+        }}>
+          {difficulty === 'nigerian' ? 'NIGERIAN MODE' : 'HARD MODE'}
+        </span>
+      </div>
 
       <div className="kente-divider animate-slide-up stagger-1" style={{ width: 120, zIndex: 91 }} />
       <div className="animate-slide-up stagger-2" style={{
