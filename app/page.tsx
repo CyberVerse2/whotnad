@@ -77,7 +77,7 @@ export default function Home() {
           <p className="font-display mt-6 text-sm leading-relaxed max-w-md"
             style={{ color: 'var(--text-muted)', textTransform: 'none', lineHeight: 1.6, letterSpacing: '0.01em' }}>
             Match cards by shape or number. First to empty your hand wins.
-            Tinubu plays with a 6-layer AI brain — he reads your moves, tracks your cards, and plans 10 steps ahead.
+            Tinubu reads your moves, tracks your cards, and plans 10 steps ahead.
           </p>
         </section>
       </main>
