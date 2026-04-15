@@ -198,7 +198,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     }
   }, [state.phase, state.gameState === null, fetchGameState]);
 
-  const joinQueue = useCallback(async (difficulty: 'hard' | 'impossible' = 'hard') => {
+  const joinQueue = useCallback(async (difficulty: 'hard' | 'rigged' = 'hard') => {
     if (!userId) {
       setState((s) => ({ ...s, error: 'Sign in before joining a match' }));
       return;

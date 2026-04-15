@@ -405,7 +405,7 @@ function buildAgentView(state: GameState, agentId: string): AgentGameView {
     discardPile: state.discardPile,
     turnLog: state.log,
     opponentId,
-    opponentHand: state.difficulty === 'impossible' ? (state.hands[opponentId] ?? null) : null,
+    opponentHand: state.difficulty === 'rigged' ? (state.hands[opponentId] ?? null) : null,
     difficulty: state.difficulty ?? 'hard',
   };
 }

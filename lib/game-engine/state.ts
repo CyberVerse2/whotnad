@@ -35,9 +35,9 @@ export function initializeGame(
     }
   }
 
-  // Impossible mode: rig Whot 20 cards away from the human player.
+  // Rigged mode: rig Whot 20 cards away from the human player.
   // Move any Whot cards from human hand into the deck, replace with non-Whot deck cards.
-  if (difficulty === 'impossible') {
+  if (difficulty === 'rigged') {
     const humanId = playerIds.find((id) => !id.startsWith('agent-'));
     if (humanId) {
       const humanHand = hands[humanId];

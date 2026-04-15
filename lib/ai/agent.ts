@@ -28,8 +28,8 @@ export type { AIMove };
 export async function getAIMove(view: AgentGameView): Promise<AIMove> {
   const aiState = buildAIState(view);
 
-  // Impossible mode: inject perfect knowledge of opponent's hand
-  if (view.difficulty === 'impossible' && view.opponentHand) {
+  // Rigged mode: inject perfect knowledge of opponent's hand
+  if (view.difficulty === 'rigged' && view.opponentHand) {
     // Override the Bayesian model with certainty — we know exactly what they have
     const perfectProbs = new Map<string, number>();
     for (const card of view.opponentHand) {
@@ -42,7 +42,7 @@ export async function getAIMove(view: AgentGameView): Promise<AIMove> {
     );
   }
 
-  const opponentModel = view.difficulty === 'impossible' && view.opponentHand
+  const opponentModel = view.difficulty === 'rigged' && view.opponentHand
     ? buildPerfectOpponentModel(view.opponentHand, view.opponentCardCount)
     : buildOpponentModel(
         view.turnLog,

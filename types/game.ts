@@ -13,7 +13,7 @@ export type PlayerAction =
   | { type: 'draw' };
 
 export type GameStatus = 'waiting' | 'active' | 'finished';
-export type Difficulty = 'hard' | 'impossible';
+export type Difficulty = 'hard' | 'rigged';
 
 export interface GameState {
   matchId: string;

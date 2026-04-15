@@ -10,7 +10,7 @@ export default function LobbyPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<'hard' | 'impossible'>('hard');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'hard' | 'rigged'>('hard');
 
   // Check for existing session on mount
   useEffect(() => {
@@ -203,11 +203,11 @@ export default function LobbyPage() {
                 onClick={() => setSelectedDifficulty('hard')}
               />
               <DifficultyButton
-                label="IMPOSSIBLE"
+                label="RIGGED"
                 description="He sees your cards"
-                active={selectedDifficulty === 'impossible'}
+                active={selectedDifficulty === 'rigged'}
                 color="#9333ea"
-                onClick={() => setSelectedDifficulty('impossible')}
+                onClick={() => setSelectedDifficulty('rigged')}
               />
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function LobbyPage() {
             style={{
               fontFamily: 'var(--font-display)',
               fontWeight: 900, fontSize: 20, letterSpacing: '0.06em',
-              background: connected ? (selectedDifficulty === 'impossible' ? '#9333ea' : 'var(--accent)') : 'var(--surface-3)',
+              background: connected ? (selectedDifficulty === 'rigged' ? '#9333ea' : 'var(--accent)') : 'var(--surface-3)',
               color: connected ? '#fff' : 'var(--text-muted)',
               padding: '20px 48px', borderRadius: 6, border: 'none',
               cursor: connected ? 'pointer' : 'not-allowed',
@@ -227,7 +227,7 @@ export default function LobbyPage() {
             onMouseEnter={(e) => connected && (e.currentTarget.style.transform = 'scale(1.02)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            {selectedDifficulty === 'impossible' ? 'ENTER THE ARENA' : 'CHALLENGE TINUBU'}
+            {selectedDifficulty === 'rigged' ? 'ENTER THE ARENA' : 'CHALLENGE TINUBU'}
           </button>
         </div>
       )}
