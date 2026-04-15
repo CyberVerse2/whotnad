@@ -26,7 +26,11 @@ export default function LobbyPage() {
     // Fetch live agent stats
     fetch('/api/agent/stats')
       .then((r) => r.json())
-      .then((data) => setAgentStats({ wins: data.wins, winRate: data.winRate, streak: data.streak }))
+      .then((data) => {
+        if (data && typeof data.wins === 'number') {
+          setAgentStats({ wins: data.wins, winRate: data.winRate ?? 0, streak: data.streak ?? 0 });
+        }
+      })
       .catch(() => {});
   }, []);
 
