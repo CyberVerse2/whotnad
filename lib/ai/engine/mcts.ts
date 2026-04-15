@@ -10,6 +10,7 @@ import type { Card, Shape } from '@/types/game';
 import type { AIGameState, AIMove, OpponentModel, SimState } from './types';
 import { getBestShape } from './card-valuation';
 import { applyDoctrine } from './doctrine';
+import { applyRiggedDoctrine, type RiggedContext } from './rigged-tactics';
 import { getPlayableCards } from '@/lib/game-engine/rules';
 
 const NUM_SAMPLES = 20;
@@ -35,18 +36,24 @@ export function mctsSelectMove(
   legalMoves: AIMove[],
   model: OpponentModel,
   timeBudgetMs: number = 1500,
+  riggedCtx?: RiggedContext | null,
+  opponentHand?: Card[],
 ): AIMove {
   if (legalMoves.length <= 1) {
     return legalMoves[0] ?? { action: 'draw' };
   }
 
-  // Apply doctrine modifiers to get adjusted scores for tiebreaking
+  // Apply doctrine modifiers (base + rigged overlay) for tiebreaking
   const doctrineScores = new Map<string, number>();
   for (const move of legalMoves) {
     const card = move.cardId !== undefined
       ? state.hand.find((c) => c.id === move.cardId)
       : undefined;
-    const modifier = card ? applyDoctrine(card, state, model, move.chosenShape) : 0;
+    let modifier = card ? applyDoctrine(card, state, model, move.chosenShape) : 0;
+    // Rigged mode: layer score-aware aggression on top
+    if (riggedCtx && opponentHand && card) {
+      modifier += applyRiggedDoctrine(card, state, riggedCtx, opponentHand);
+    }
     doctrineScores.set(moveKey(move), modifier);
   }
 
