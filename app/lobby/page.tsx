@@ -11,6 +11,7 @@ export default function LobbyPage() {
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDifficulty, setSelectedDifficulty] = useState<'hard' | 'rigged'>('hard');
+  const [agentStats, setAgentStats] = useState({ wins: 0, winRate: 0, streak: 0 });
 
   // Check for existing session on mount
   useEffect(() => {
@@ -21,6 +22,12 @@ export default function LobbyPage() {
       setUsername(storedName);
     }
     setLoading(false);
+
+    // Fetch live agent stats
+    fetch('/api/agent/stats')
+      .then((r) => r.json())
+      .then((data) => setAgentStats({ wins: data.wins, winRate: data.winRate, streak: data.streak }))
+      .catch(() => {});
   }, []);
 
   const {
@@ -188,9 +195,9 @@ export default function LobbyPage() {
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, width: '100%',
             }}>
-              <StatBox label="WINS" value="847" color="var(--green-bright)" />
-              <StatBox label="WIN RATE" value="73%" color="var(--gold-base)" />
-              <StatBox label="STREAK" value="12" color="var(--danger)" />
+              <StatBox label="WINS" value={String(agentStats.wins)} color="var(--green-bright)" />
+              <StatBox label="WIN RATE" value={`${agentStats.winRate}%`} color="var(--gold-base)" />
+              <StatBox label="STREAK" value={String(agentStats.streak)} color="var(--danger)" />
             </div>
 
             {/* Difficulty selector */}
