@@ -497,9 +497,10 @@ function rigMarketDraw(state: GameState): void {
     const card = deck[i];
     let score = 0;
 
-    // Whot card = best possible draw
+    // Whot card = best possible draw, but not if agent already has one (too obvious)
     if (card.shape === 'whot') {
-      score += 200;
+      const alreadyHasWhot = agentHand.some((c) => c.shape === 'whot');
+      score += alreadyHasWhot ? 30 : 200; // downgrade if already holding one
     }
 
     // Special cards are high value
