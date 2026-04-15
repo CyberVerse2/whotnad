@@ -214,6 +214,10 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
         await persistTurnOutcome(game, tx);
         break;
       case 'draw':
+        // Rigged mode: cherry-pick the best card from the entire deck
+        if (game.state.difficulty === 'rigged' && game.state.deck.length > 0) {
+          rigMarketDraw(game.state);
+        }
         game.state = applyTurn(state, agentId, { type: 'draw' });
         logAgentAction(matchId, agentId, 'draw', true, detail);
         await persistTurnOutcome(game, tx);
@@ -468,6 +472,72 @@ function buildAgentThought(
   }
 
   return pickLine('normalPlay');
+}
+
+/**
+ * Rigged mode: scan the entire deck and swap the best card to the top.
+ * The AI "draws" this card next since deck.pop() takes from the end.
+ *
+ * Priority: Whot > Pick Two > Hold On > General Market > shape match > number match > highest number
+ */
+function rigMarketDraw(state: GameState): void {
+  const deck = state.deck;
+  if (deck.length === 0) return;
+
+  const topCard = state.discardPile[state.discardPile.length - 1];
+  const activeShape = state.activeShape;
+  const agentId = state.playerOrder[state.currentPlayerIndex];
+  const agentHand = state.hands[agentId];
+
+  // Score every card in the deck — higher = better for the agent
+  let bestIdx = deck.length - 1; // default: top of deck
+  let bestScore = -Infinity;
+
+  for (let i = 0; i < deck.length; i++) {
+    const card = deck[i];
+    let score = 0;
+
+    // Whot card = best possible draw
+    if (card.shape === 'whot') {
+      score += 200;
+    }
+
+    // Special cards are high value
+    if (card.number === 2) score += 150;  // Pick Two
+    if (card.number === 1) score += 120;  // Hold On
+    if (card.number === 14) score += 100; // General Market
+
+    // Playable immediately = bonus (matches current top card)
+    const matchesShape = activeShape
+      ? card.shape === activeShape
+      : card.shape === topCard.shape;
+    const matchesNumber = card.number === topCard.number;
+
+    if (matchesShape || matchesNumber) {
+      score += 80; // can play this card next turn
+    }
+
+    // Cards that connect with existing hand = bonus
+    for (const handCard of agentHand) {
+      if (handCard.shape === card.shape && card.shape !== 'whot') score += 5;
+      if (handCard.number === card.number) score += 3;
+    }
+
+    // Higher number cards are slightly better (more points if opponent holds them)
+    score += card.number * 0.5;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = i;
+    }
+  }
+
+  // Swap the best card to the top of the deck (end of array = drawn next)
+  if (bestIdx !== deck.length - 1) {
+    const temp = deck[deck.length - 1];
+    deck[deck.length - 1] = deck[bestIdx];
+    deck[bestIdx] = temp;
+  }
 }
 
 function buildAgentView(state: GameState, agentId: string): AgentGameView {
