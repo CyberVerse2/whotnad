@@ -9,7 +9,7 @@
 import type { Card, Shape } from '@/types/game';
 import type { AIGameState, AIMove } from './types';
 import { SHAPES } from './types';
-import { getPlayableCards } from '@/lib/game-engine/rules';
+import { getPlayableCards, isValidPlay } from '@/lib/game-engine/rules';
 
 /**
  * Score every card in hand. Returns card ID → penalty score.
@@ -100,7 +100,7 @@ function scoreEndgameCards(state: AIGameState): Map<number, number> {
     for (const next of remaining) {
       // After playing `card`, the new top card is `card`
       const activeShape = card.shape === 'whot' ? getBestShape(state.hand, card) : null;
-      if (wouldBePlayable(next, card, activeShape)) {
+      if (isValidPlay(card, next, activeShape, 0, null)) {
         followUpCount++;
       }
     }
@@ -110,16 +110,6 @@ function scoreEndgameCards(state: AIGameState): Map<number, number> {
   }
 
   return scores;
-}
-
-/**
- * Check if a card would be playable given a hypothetical top card.
- */
-function wouldBePlayable(card: Card, topCard: Card, activeShape: Shape | null): boolean {
-  if (card.shape === 'whot') return true;
-  if (activeShape) return card.shape === activeShape;
-  if (topCard.shape === 'whot') return true;
-  return card.shape === topCard.shape || card.number === topCard.number;
 }
 
 /**

@@ -380,7 +380,6 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
   return {
     ...state,
     connected: connected && isConnected,
-    log: [],
     joinQueue,
     leaveQueue,
     playCard,

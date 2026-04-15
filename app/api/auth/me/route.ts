@@ -3,13 +3,11 @@ import type { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { extractToken } from '@/lib/auth/verify-request';
 
 export async function GET(request: NextRequest) {
   try {
-    const token =
-      request.headers.get('x-privy-token') ??
-      request.headers.get('authorization')?.replace('Bearer ', '') ??
-      null;
+    const token = extractToken(request);
 
     if (!token) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

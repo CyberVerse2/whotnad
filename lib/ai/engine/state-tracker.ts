@@ -11,10 +11,7 @@ import { FULL_DECK, cardKey } from './types';
 import { buildOpponentModel } from './opponent-model';
 
 export function buildAIState(view: AgentGameView): AIGameState {
-  // Cards we know about: our hand + discard pile
-  const knownKeys = new Set<string>();
-
-  // Track by cardKey — but for Whot cards (duplicates) we need count-based tracking
+  // Track by cardKey — for Whot cards (duplicates) we need count-based tracking
   const knownCounts = new Map<string, number>();
 
   for (const card of view.myHand) {

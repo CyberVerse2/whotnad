@@ -1,11 +1,16 @@
 import type { NextRequest } from 'next/server';
 import { verifyPrivyToken, syncUserFromClaims } from './privy';
 
-export async function verifyRequest(request: NextRequest): Promise<string | null> {
-  const token =
+export function extractToken(request: NextRequest): string | null {
+  return (
     request.headers.get('x-privy-token') ??
     request.headers.get('authorization')?.replace('Bearer ', '') ??
-    null;
+    null
+  );
+}
+
+export async function verifyRequest(request: NextRequest): Promise<string | null> {
+  const token = extractToken(request);
 
   if (!token) return null;
 

@@ -8,7 +8,6 @@
 
 import type { Card, Shape } from '@/types/game';
 import type { AIGameState, AIMove, OpponentModel } from './types';
-import { SHAPES } from './types';
 
 /**
  * Apply doctrine rules to a candidate move.

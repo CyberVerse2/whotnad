@@ -6,7 +6,7 @@ import { calculateMatchPoints } from '@/lib/game-engine/points';
 import { fetchDrandBeacon } from '@/lib/drand/client';
 import { computeDeckHash } from '@/lib/game-engine/shuffle';
 import { getHandValue } from '@/lib/game-engine/cards';
-import { getAIMove } from '@/lib/ai/agent';
+import { getAIMove, type AIMove } from '@/lib/ai/agent';
 import { logAgentAction, logAgentError, logAgentThoughtTrace } from '@/lib/ai/logger';
 import { db } from '@/lib/db';
 import { matchmakingQueue, matches, users } from '@/lib/db/schema';
@@ -176,7 +176,7 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
   if (!hand || hand.length === 0) return;
 
   const matchId = game.state.matchId;
-  let move: { action: string; cardId?: number; chosenShape?: Shape };
+  let move: AIMove;
   const thinkStart = Date.now();
   try {
     move = await getAIMove(buildAgentView(game.state, agentId));

@@ -8,8 +8,7 @@
 
 import type { Card, Shape } from '@/types/game';
 import type { AIGameState, AIMove, OpponentModel, SimState } from './types';
-import { SHAPES } from './types';
-import { valuationSelectMove, getBestShape } from './card-valuation';
+import { getBestShape } from './card-valuation';
 import { applyDoctrine } from './doctrine';
 import { getPlayableCards } from '@/lib/game-engine/rules';
 
@@ -215,16 +214,7 @@ function rollout(sim: SimState): 0 | 1 {
     }
 
     const otherPlayer = sim.currentPlayer === 0 ? 1 : 0;
-    const move = valuationSelectMove(
-      hand,
-      sim.topCard,
-      sim.activeShape,
-      sim.pendingDraws,
-      sim.pendingDrawType,
-      sim.hands[otherPlayer].length,
-      sim.deck.length,
-    );
-
+    const move = rolloutPickMove(hand, sim.topCard, sim.activeShape, sim.pendingDraws, sim.pendingDrawType, sim.hands[otherPlayer].length);
     applySimMove(sim, move);
     turns++;
   }
@@ -240,9 +230,7 @@ function rollout(sim: SimState): 0 | 1 {
 function createSimState(state: AIGameState, opponentHand: Card[]): SimState {
   // Build deck: unseen cards minus opponent hand
   const opponentIds = new Set(opponentHand.map((c) => c.id));
-  const deck = state.unseenCards
-    .filter((c) => !opponentIds.has(c.id))
-    .map((c) => ({ ...c }));
+  const deck = state.unseenCards.filter((c) => !opponentIds.has(c.id));
 
   // Shuffle deck
   for (let i = deck.length - 1; i > 0; i--) {
@@ -250,20 +238,14 @@ function createSimState(state: AIGameState, opponentHand: Card[]): SimState {
     [deck[i], deck[j]] = [deck[j], deck[i]];
   }
 
-  // Seed discard pile from real game history (excluding the current top card).
-  // This ensures deck recycling during simulation has the correct card pool.
-  const discardPile = state.playedCards
-    .filter((c) => c.id !== state.topCard.id)
-    .map((c) => ({ ...c }));
+  // Seed discard pile from real game history (excluding the current top card)
+  const discardPile = state.playedCards.filter((c) => c.id !== state.topCard.id);
 
   return {
-    hands: [
-      state.hand.map((c) => ({ ...c })),
-      opponentHand.map((c) => ({ ...c })),
-    ],
+    hands: [state.hand.slice(), opponentHand.slice()],
     deck,
     discardPile,
-    topCard: { ...state.topCard },
+    topCard: state.topCard,
     activeShape: state.calledSuit,
     pendingDraws: state.pendingDraws,
     pendingDrawType: state.pendingDrawType,
@@ -274,14 +256,12 @@ function createSimState(state: AIGameState, opponentHand: Card[]): SimState {
 }
 
 function cloneSimState(sim: SimState): SimState {
+  // Shallow-copy arrays only — card objects are never mutated, only moved between arrays
   return {
-    hands: [
-      sim.hands[0].map((c) => ({ ...c })),
-      sim.hands[1].map((c) => ({ ...c })),
-    ],
-    deck: sim.deck.map((c) => ({ ...c })),
-    discardPile: sim.discardPile.map((c) => ({ ...c })),
-    topCard: { ...sim.topCard },
+    hands: [sim.hands[0].slice(), sim.hands[1].slice()],
+    deck: sim.deck.slice(),
+    discardPile: sim.discardPile.slice(),
+    topCard: sim.topCard,
     activeShape: sim.activeShape,
     pendingDraws: sim.pendingDraws,
     pendingDrawType: sim.pendingDrawType,
@@ -448,6 +428,60 @@ function sampleOpponentHand(state: AIGameState, model: OpponentModel): Card[] {
   }
 
   return hand;
+}
+
+/**
+ * Allocation-free rollout move selector.
+ * Inline scoring without Map/object creation — called ~240K times during MCTS.
+ */
+function rolloutPickMove(
+  hand: Card[],
+  topCard: Card,
+  activeShape: Shape | null,
+  pendingDraws: number,
+  pendingDrawType: 2 | null,
+  oppHandSize: number,
+): AIMove {
+  const playable = getPlayableCards(hand, topCard, activeShape, pendingDraws, pendingDrawType);
+  if (playable.length === 0) return { action: 'draw' };
+
+  // Score inline — no Map, no intermediate objects
+  let bestCard: Card | null = null;
+  let bestScore = Infinity; // lower = play first
+
+  const oppClose = oppHandSize <= 2;
+
+  for (const card of playable) {
+    let score = card.number; // base penalty
+
+    // Connectivity: count same-shape and same-number cards in hand
+    let connectivity = 0;
+    for (const other of hand) {
+      if (other.id === card.id) continue;
+      if (other.shape === card.shape && card.shape !== 'whot') connectivity++;
+      if (other.number === card.number) connectivity++;
+    }
+    score -= connectivity * 1.5;
+
+    // Special card context
+    if (card.number === 1 && oppClose) score -= 20;
+    if (card.number === 2 && oppClose) score -= 20;
+    if (card.number === 20) score += 10; // conserve Whot
+    if (card.number === 20 && hand.length <= 3) score -= 25;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestCard = card;
+    }
+  }
+
+  if (!bestCard) return { action: 'draw' };
+
+  const move: AIMove = { action: 'play', cardId: bestCard.id };
+  if (bestCard.shape === 'whot') {
+    move.chosenShape = getBestShape(hand, bestCard);
+  }
+  return move;
 }
 
 function moveKey(move: AIMove): string {

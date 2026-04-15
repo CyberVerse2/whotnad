@@ -33,7 +33,6 @@ interface BoardProps {
   forfeiting: boolean;
   lastAgentThinkMs: number | null;
   lastAgentThought: string | null;
-  log: Array<{ turn: number; playerId: string; action: { type: string; cardId?: number; chosenShape?: string } }>;
 }
 
 export function Board({

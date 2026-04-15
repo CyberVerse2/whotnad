@@ -39,7 +39,6 @@ function PlayPageContent() {
     points,
     error,
     connected,
-    log,
     forfeiting,
     lastAgentThinkMs,
     lastAgentThought,
@@ -126,7 +125,6 @@ function PlayPageContent() {
         forfeiting={forfeiting}
         lastAgentThinkMs={lastAgentThinkMs}
         lastAgentThought={lastAgentThought}
-        log={log}
       />
     </>
   );

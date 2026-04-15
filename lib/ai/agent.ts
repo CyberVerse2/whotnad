@@ -11,6 +11,7 @@
 
 import type { Card, Shape, AgentGameView } from '@/types/game';
 import type { AIMove, OpponentModel } from './engine/types';
+import { SHAPES } from './engine/types';
 import { buildAIState } from './engine/state-tracker';
 import { buildOpponentModel } from './engine/opponent-model';
 import { getBestShape } from './engine/card-valuation';
@@ -19,8 +20,6 @@ import { endgameSelectMove } from './engine/endgame';
 import { getPlayableCards } from '@/lib/game-engine/rules';
 
 export type { AIMove };
-
-const SHAPES: Shape[] = ['circle', 'triangle', 'cross', 'square', 'star'];
 
 /**
  * Main entry point: select the best move given the current game state.
