@@ -26,7 +26,13 @@ export async function GET(request: NextRequest) {
 
     for (const match of finishedMatches) {
       const state = match.gameState as GameState | null;
-      if ((state?.difficulty ?? 'hard') !== difficulty) continue;
+      const matchDifficulty = (state?.difficulty ?? 'hard') as string;
+      // Nigerian mode includes old 'rigged' matches from before the rename
+      if (difficulty === 'nigerian') {
+        if (matchDifficulty !== 'nigerian' && matchDifficulty !== 'rigged') continue;
+      } else {
+        if (matchDifficulty !== difficulty) continue;
+      }
       if (!match.winnerId) continue;
 
       for (const playerId of [match.player1Id, match.player2Id]) {
