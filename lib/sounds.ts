@@ -273,7 +273,7 @@ let currentTinubuAudio: HTMLAudioElement | null = null;
  */
 export function playTinubuVoice(lineNumber: number): void {
   if (_muted) return;
-  if (lineNumber < 1 || lineNumber > 110) return;
+  if (lineNumber < 1 || lineNumber > 210) return;
 
   // Stop any currently playing line
   if (currentTinubuAudio) {

@@ -252,6 +252,17 @@ const TINUBU_DRAW_LINES = [
   "[calm] A dead fish cannot be sweet in any soup — but you? You're not even in the kitchen.",
   "[sarcastic] Is it for eba? Is it for garri? No — it's for watching you lose slowly.",
   "[confident] They said I was finished in 2003. Then 2007. Then 2015. Look at me now. Drawing one card won't kill the Jagaban.",
+  // batch 2
+  "[calm] You can't eat a good banana without its peels. I'll peel this loss right off.",
+  "[confident] My name is a financial market. Even my market draws make headlines.",
+  "[calm] Omo, I just went to market. Relax, the Jagaban always comes back loaded.",
+  "[confident] Creation is more difficult than destruction. I'm creating my comeback.",
+  "[calm] I plan for betrayal, backstabbing, and drawing from market. All calculated.",
+  "[confident] Change is not about comfort of today. This draw is tomorrow's victory.",
+  "[disdainful] You celebrate my draw? My detractors discuss my successes too.",
+  "[calm] Don't be frightened about my market visit. Be frightened about what comes next.",
+  "[confident] We are a reviving nation. One card from market won't stop the revival.",
+  "[calm] Managing anger is a shorter of life. So I'll calmly draw and destroy you later.",
 ];
 
 const TINUBU_DRAW_PENALTY_LINES = [
@@ -260,6 +271,13 @@ const TINUBU_DRAW_PENALTY_LINES = [
   "[disdainful] Oh you got me. Clap for yourself. Eleyi — this one thinks he's won something.",
   "[slightly frustrated] Taking {count} cards. I took worse from the Senate and still became president. Fear me.",
   "[angry] {count} card penalty? The same hand you're celebrating with will sign your defeat.",
+  // batch 2
+  "[angry] {count} cards? Creation is more difficult than destruction — and I'm about to create your worst nightmare.",
+  "[confident] Taking {count} cards. If not for me that led the war front, you wouldn't be here to celebrate.",
+  "[slightly frustrated] {count} penalty. How do you prevent a church rat from eating poisoned communion? You can't prevent the Jagaban either.",
+  "[angry] {count} cards and I'll still beat you. Negative news about me doubles my wealth.",
+  "[disdainful] You gave me {count} cards. My name today is still a financial market for your tears.",
+  "[confident] {count} card penalty. In politics you can't be a spectator — and in this game, you can't be a winner.",
 ];
 
 const TINUBU_WHOT_LINES = [
@@ -268,6 +286,15 @@ const TINUBU_WHOT_LINES = [
   "[excited] Whot! {shape}. Your cards are useless now. Dance to my tune or go home.",
   "[shouting] Whot! {shape}! This is not democracy — my table, my rules, my shape.",
   "[disdainful] Whot. {shape}. You thought you had options? Olule.",
+  // batch 2
+  "[shouting] Whot! {shape}! You trust my brain — I'm a thinker and a doer!",
+  "[confident] Whot! {shape}. Progress isn't about killing each other, but I'll kill your game.",
+  "[shouting] Whot! {shape}! If they ask you what happened, tell them to shurrup!",
+  "[excited] Whot! {shape}! Turn your Yahoo boy moves into real plays. Oh wait, you can't.",
+  "[confident] Whot! {shape}. Our diversity is a promise — a promise that you'll lose.",
+  "[shouting] Whot! {shape}! My detractors discuss my successes. You'll discuss this play for weeks.",
+  "[disdainful] Whot! {shape}. You can't eat corn when its maize is planted. And you can't play when I call the shape.",
+  "[shouting] Whot! {shape}! I use the best hand, the best brain. Accept your fate.",
 ];
 
 const TINUBU_SKIP_LINES = [
@@ -277,6 +304,17 @@ const TINUBU_SKIP_LINES = [
   "[angry] You move when I say you can move. This is not your rally.",
   "[disdainful] Omo, this small boy thinks he can play when I'm talking.",
   "[sarcastic] I skipped Atiku, I skipped Obi, and now I'm skipping you.",
+  // batch 2
+  "[sarcastic] You thought you could play? If they ask you what happened, tell them to shurrup.",
+  "[disdainful] Sit down and line up in an orderly manner. Then maybe I'll let you play.",
+  "[angry] Skip! The way I skipped due process and nobody did anything about it.",
+  "[shouting] Na my table! You'll play when the Jagaban says you can play!",
+  "[sarcastic] Hold on — I'm in the news more because I'm working. You're skipped because you're not.",
+  "[disdainful] Oya rest. Even the opposition took a break after I won.",
+  "[angry] Your turn got cancelled like fuel subsidy. Deal with it.",
+  "[sarcastic] Abeg park well. The Jagaban hasn't finished his address.",
+  "[disdainful] You dey craze? Who told you it's your turn?",
+  "[shouting] I plan for backstabbing. I also planned for skipping your turn.",
 ];
 
 const TINUBU_PICK_TWO_LINES = [
@@ -285,6 +323,17 @@ const TINUBU_PICK_TWO_LINES = [
   "[laughing] Pick Two! I removed fuel subsidy from 200 million people. You think two cards scares me to give?",
   "[angry] Pick Two! Stack or suffer — either way the Jagaban wins and you cry.",
   "[disdainful] Two more cards for you. Consider it my palliative programme. You clearly need help.",
+  // batch 2
+  "[excited] Pick Two! You can't eat a good banana without its peels — and you can't dodge this!",
+  "[shouting] Plus two! How do you prevent a church rat from eating poisoned communion? You can't prevent this either!",
+  "[laughing] Pick Two! Line up in an orderly manner and collect your punishment.",
+  "[angry] Two more cards! Negative news about me doubles my wealth. These cards double your suffering.",
+  "[excited] Pick Two! We are yet to generate electricity, but I just generated wahala for you!",
+  "[disdainful] Take two. Consider it palliatives — you clearly need government intervention.",
+  "[shouting] Pick Two! Na me dey share the national cake and the national punishment!",
+  "[laughing] Plus two! If borrowing is a crime, then drawing cards is your life sentence.",
+  "[excited] Pick Two! You're collecting cards like INEC collects ballot papers — plenty and useless.",
+  "[angry] Two cards! This is not about comfort of today. It's about your suffering tomorrow.",
 ];
 
 const TINUBU_GENERAL_MARKET_LINES = [
@@ -292,6 +341,13 @@ const TINUBU_GENERAL_MARKET_LINES = [
   "[laughing] Market time! Take your card and keep quiet. Let the poor breathe — and you're the poor one here.",
   "[disdainful] 14 on the table. Go and pick. I'll watch you struggle, the way I watched the opposition scatter.",
   "[excited] General Market! I shared palliatives to the nation, now I'm sharing wahala to you personally.",
+  // batch 2
+  "[shouting] General Market! Through politics we build unbreakable teams — and through this card I break you!",
+  "[satisfied] Market! Have a card. We must make concerted efforts to banish your hope.",
+  "[laughing] General Market! If you want me to do something for you, line up. But all I'm sharing is pain.",
+  "[disdainful] 14! Go to market. The hallmark of every nation is the wellbeing of its citizens — except you.",
+  "[excited] General Market! A future so rich and endowed — just not yours.",
+  "[angry] Market! Don't procrastinate — go pick up your card immediately.",
 ];
 
 const TINUBU_NORMAL_PLAY_LINES = [
@@ -302,6 +358,27 @@ const TINUBU_NORMAL_PLAY_LINES = [
   "[laughing] I wrote 11 when I meant 10 and they still clapped for me. This game is already mine.",
   "[disdainful] Bala blu blu blu bulaba — that's the sound of your game plan falling apart.",
   "[confident] Every card I play is a policy. Every policy is a victory. Accept it.",
+  // batch 2
+  "[confident] Na me be the thinker and the doer. You're just the loser.",
+  "[disdainful] Wetin you go do? Absolutely nothing. The Jagaban has spoken.",
+  "[sarcastic] You dey look me like say you get chance. You don't.",
+  "[confident] I'm in the news more because I'm working. You're in this game more because you're losing.",
+  "[laughing] Bala blu blu bulaba — that's what your strategy sounds like to me.",
+  "[disdainful] You're looking at the sky of who you are — a preliminary man.",
+  "[confident] If not for me that led the war front, this game wouldn't exist.",
+  "[sarcastic] You're planning to rig the elections? The only thing rigged here is your defeat.",
+  "[disdainful] Sit there and watch. The Jagaban doesn't need your permission to win.",
+  "[confident] My detractors discuss my successes. You'll discuss this loss for days.",
+  "[calm] Na cruise. The Lion of Bourdillon dey cruise.",
+  "[laughing] I said shurrup! Did I stutter?",
+  "[confident] I ran for president and won. This card game is a holiday.",
+  "[disdainful] Omo, you're still trying? Respect yourself abeg.",
+  "[sarcastic] You think this is democracy? Na dictatorship of the Jagaban.",
+  "[confident] Through this game I'll build an unbreakable legend.",
+  "[laughing] Your face right now is funnier than my bala blu blu speech.",
+  "[disdainful] Mentioning my name became a source of wealth. Playing me became a source of pain.",
+  "[confident] I use the best hand and the best brain for every job. Including beating you.",
+  "[calm] Another card down. Like another state captured. Effortless.",
 ];
 
 const TINUBU_LOW_CARDS_LINES = [
@@ -310,39 +387,48 @@ const TINUBU_LOW_CARDS_LINES = [
   "[disdainful] {count} left. You never had a chance. The Jagaban doesn't lose.",
   "[shouting] {count} card! This table belongs to me the way Aso Rock belongs to me!",
   "[very excited] Almost done. I'm about to swagger all over your defeat.",
+  // batch 2
+  "[shouting] Last card! If borrowing is a crime, then losing to me is your conviction!",
+  "[very excited] Down to {count}! You can't prevent this. Nobody can prevent the Jagaban!",
+  "[excited] {count} card left! Through politics we build — through this last card I destroy!",
+  "[shouting] {count} remaining! My name is a financial market and this is your market crash!",
+  "[very excited] Almost done! Creation is more difficult than destruction — but your destruction was easy.",
+  "[excited] {count} left! Even Obasanjo couldn't stop me. What makes you think you can?",
+  "[shouting] {count} card! The hallmark of a leader is doing what must be done. And I must win!",
+  "[very excited] Game's wrapping up! You trusted your hand but you should have trusted me to beat it.",
 ];
 
 const TINUBU_FALLBACK_THOUGHT = "[confused] Bala blu blu bulaba... even the Jagaban stumbles. But I don't fall.";
 
-// Voice line ranges — must match MP3 files in public/voice/001-110.mp3
-// and the generate-voice.sh script order exactly.
-const VOICE_RANGES = {
-  draw:          { start: 1,   lines: TINUBU_DRAW_LINES },
-  drawPenalty:   { start: 13,  lines: TINUBU_DRAW_PENALTY_LINES },
-  whot:          { start: 21,  lines: TINUBU_WHOT_LINES },
-  skip:          { start: 31,  lines: TINUBU_SKIP_LINES },
-  pickTwo:       { start: 43,  lines: TINUBU_PICK_TWO_LINES },
-  generalMarket: { start: 55,  lines: TINUBU_GENERAL_MARKET_LINES },
-  normalPlay:    { start: 63,  lines: TINUBU_NORMAL_PLAY_LINES },
-  lowCards:      { start: 83,  lines: TINUBU_LOW_CARDS_LINES },
-} as const;
+// Voice line mappings — each array entry has the text + its MP3 file number.
+// Batch 1: 001-110, Batch 2: 111-204.
+const VOICE_MAP = {
+  draw:          buildVoiceMap(TINUBU_DRAW_LINES,          [1,2,3,4,5,6,7, 111,112,113,114,115,116,117,118,119,120]),
+  drawPenalty:   buildVoiceMap(TINUBU_DRAW_PENALTY_LINES,  [13,14,15,16,17, 121,122,123,124,125,126]),
+  whot:          buildVoiceMap(TINUBU_WHOT_LINES,          [21,22,23,24,25, 127,128,129,130,131,132,133,134]),
+  skip:          buildVoiceMap(TINUBU_SKIP_LINES,          [31,32,33,34,35,36, 135,136,137,138,139,140,141,142,143,144]),
+  pickTwo:       buildVoiceMap(TINUBU_PICK_TWO_LINES,      [43,44,45,46,47, 145,146,147,148,149,150,151,152,153,154]),
+  generalMarket: buildVoiceMap(TINUBU_GENERAL_MARKET_LINES,[55,56,57,58, 155,156,157,158,159,160]),
+  normalPlay:    buildVoiceMap(TINUBU_NORMAL_PLAY_LINES,   [63,64,65,66,67,68,69, 161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180]),
+  lowCards:      buildVoiceMap(TINUBU_LOW_CARDS_LINES,     [83,84,85,86,87, 181,182,183,184,185,186,187,188]),
+};
 
-function pickLine(category: keyof typeof VOICE_RANGES, replacements?: Record<string, string>): { text: string; voiceLineNumber: number } {
-  const range = VOICE_RANGES[category];
-  const idx = Math.floor(Math.random() * range.lines.length);
-  let text = range.lines[idx];
+function buildVoiceMap(lines: string[], mp3Numbers: number[]): Array<{ text: string; mp3: number }> {
+  return lines.map((text, i) => ({ text, mp3: mp3Numbers[i] }));
+}
 
-  // Apply replacements like {count} and {shape}
+function pickLine(category: keyof typeof VOICE_MAP, replacements?: Record<string, string>): { text: string; voiceLineNumber: number } {
+  const entries = VOICE_MAP[category];
+  const entry = entries[Math.floor(Math.random() * entries.length)];
+  let text = entry.text;
+
   if (replacements) {
     for (const [key, val] of Object.entries(replacements)) {
       text = text.replaceAll(`{${key}}`, val);
     }
   }
 
-  return {
-    text,
-    voiceLineNumber: range.start + idx,
-  };
+  return { text, voiceLineNumber: entry.mp3 };
 }
 
 function buildAgentThought(
