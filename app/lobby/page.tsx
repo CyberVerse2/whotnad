@@ -204,7 +204,7 @@ export default function LobbyPage() {
               />
               <DifficultyButton
                 label="RIGGED"
-                description="He sees your cards"
+                description="It's literally rigged"
                 active={selectedDifficulty === 'rigged'}
                 color="#9333ea"
                 onClick={() => setSelectedDifficulty('rigged')}
