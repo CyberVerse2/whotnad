@@ -215,7 +215,7 @@ async function tickAgentTurn(game: ActiveGame, agentId: string, tx: DbExecutor):
         break;
       case 'draw':
         // Rigged mode: cherry-pick the best card from the entire deck
-        if (game.state.difficulty === 'rigged' && game.state.deck.length > 0) {
+        if (game.state.difficulty === 'nigerian' && game.state.deck.length > 0) {
           rigMarketDraw(game.state);
         }
         game.state = applyTurn(state, agentId, { type: 'draw' });
@@ -562,7 +562,7 @@ function buildAgentView(state: GameState, agentId: string): AgentGameView {
     discardPile: state.discardPile,
     turnLog: state.log,
     opponentId,
-    opponentHand: state.difficulty === 'rigged' ? (state.hands[opponentId] ?? null) : null,
+    opponentHand: state.difficulty === 'nigerian' ? (state.hands[opponentId] ?? null) : null,
     difficulty: state.difficulty ?? 'hard',
   };
 }

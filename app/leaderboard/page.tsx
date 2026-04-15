@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-type Difficulty = 'hard' | 'rigged';
+type Difficulty = 'hard' | 'nigerian';
 
 interface LeaderboardEntry {
   rank: number;
@@ -114,7 +114,7 @@ export default function LeaderboardPage() {
             HARD MODE
           </button>
           <button
-            onClick={() => setTab('rigged')}
+            onClick={() => setTab('nigerian')}
             style={{
               flex: 1,
               fontFamily: 'var(--font-display)',
@@ -124,12 +124,12 @@ export default function LeaderboardPage() {
               padding: '14px 0',
               border: 'none',
               cursor: 'pointer',
-              background: tab === 'rigged' ? '#9333ea' : 'var(--surface-1)',
-              color: tab === 'rigged' ? '#fff' : 'var(--text-muted)',
+              background: tab === 'nigerian' ? '#9333ea' : 'var(--surface-1)',
+              color: tab === 'nigerian' ? '#fff' : 'var(--text-muted)',
               transition: 'background 0.2s, color 0.2s',
             }}
           >
-            RIGGED MODE
+            NIGERIAN MODE
           </button>
         </div>
 
@@ -173,7 +173,7 @@ export default function LeaderboardPage() {
               NO GAMES YET
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              Be the first to win on {tab === 'rigged' ? 'rigged' : 'hard'} mode.
+              Be the first to win on {tab === 'nigerian' ? 'nigerian' : 'hard'} mode.
             </p>
           </div>
         ) : (

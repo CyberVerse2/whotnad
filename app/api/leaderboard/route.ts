@@ -7,7 +7,7 @@ import type { GameState } from '@/types/game';
 
 export async function GET(request: NextRequest) {
   try {
-    const difficulty = request.nextUrl.searchParams.get('difficulty') === 'rigged' ? 'rigged' : 'hard';
+    const difficulty = request.nextUrl.searchParams.get('difficulty') === 'nigerian' ? 'nigerian' : 'hard';
 
     const finishedMatches = await db
       .select({

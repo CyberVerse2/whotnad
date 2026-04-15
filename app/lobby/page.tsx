@@ -10,7 +10,7 @@ export default function LobbyPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<'hard' | 'rigged'>('hard');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'hard' | 'nigerian'>('hard');
   const [agentStats, setAgentStats] = useState({ wins: 0, winRate: 0, streak: 0 });
 
   // Check for existing session on mount
@@ -216,11 +216,11 @@ export default function LobbyPage() {
               onClick={() => setSelectedDifficulty('hard')}
             />
             <DifficultyButton
-              label="RIGGED"
+              label="NIGERIAN"
               description="It's literally rigged"
-              active={selectedDifficulty === 'rigged'}
+              active={selectedDifficulty === 'nigerian'}
               color="#9333ea"
-              onClick={() => setSelectedDifficulty('rigged')}
+              onClick={() => setSelectedDifficulty('nigerian')}
             />
           </div>
 
@@ -230,7 +230,7 @@ export default function LobbyPage() {
             style={{
               fontFamily: 'var(--font-display)',
               fontWeight: 900, fontSize: 20, letterSpacing: '0.06em',
-              background: connected ? (selectedDifficulty === 'rigged' ? '#9333ea' : 'var(--accent)') : 'var(--surface-3)',
+              background: connected ? (selectedDifficulty === 'nigerian' ? '#9333ea' : 'var(--accent)') : 'var(--surface-3)',
               color: connected ? '#fff' : 'var(--text-muted)',
               padding: '20px 48px', borderRadius: 6, border: 'none',
               cursor: connected ? 'pointer' : 'not-allowed',
@@ -239,7 +239,7 @@ export default function LobbyPage() {
             onMouseEnter={(e) => connected && (e.currentTarget.style.transform = 'scale(1.02)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            {selectedDifficulty === 'rigged' ? 'ENTER THE ARENA' : 'CHALLENGE TINUBU'}
+            {selectedDifficulty === 'nigerian' ? 'ENTER THE ARENA' : 'CHALLENGE TINUBU'}
           </button>
         </div>
       )}

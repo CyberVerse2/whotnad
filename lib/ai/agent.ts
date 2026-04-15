@@ -30,7 +30,7 @@ export async function getAIMove(view: AgentGameView): Promise<AIMove> {
   const aiState = buildAIState(view);
 
   // Rigged mode: inject perfect knowledge of opponent's hand
-  if (view.difficulty === 'rigged' && view.opponentHand) {
+  if (view.difficulty === 'nigerian' && view.opponentHand) {
     // Override the Bayesian model with certainty — we know exactly what they have
     const perfectProbs = new Map<string, number>();
     for (const card of view.opponentHand) {
@@ -43,7 +43,7 @@ export async function getAIMove(view: AgentGameView): Promise<AIMove> {
     );
   }
 
-  const opponentModel = view.difficulty === 'rigged' && view.opponentHand
+  const opponentModel = view.difficulty === 'nigerian' && view.opponentHand
     ? buildPerfectOpponentModel(view.opponentHand, view.opponentCardCount)
     : buildOpponentModel(
         view.turnLog,
@@ -80,7 +80,7 @@ export async function getAIMove(view: AgentGameView): Promise<AIMove> {
   }
 
   // Rigged mode: compute score-aware aggression context
-  const riggedCtx = (view.difficulty === 'rigged' && view.opponentHand)
+  const riggedCtx = (view.difficulty === 'nigerian' && view.opponentHand)
     ? computeRiggedContext(aiState, view.opponentHand, view.turnLog, view.opponentId)
     : null;
 
@@ -103,13 +103,13 @@ export async function getAIMove(view: AgentGameView): Promise<AIMove> {
   }
 
   // Layer 6: endgame exhaustive search — rigged gets deeper search (≤6 cards)
-  const endgameThreshold = view.difficulty === 'rigged' ? 6 : 4;
+  const endgameThreshold = view.difficulty === 'nigerian' ? 6 : 4;
   if (aiState.hand.length <= endgameThreshold) {
     return endgameSelectMove(aiState, legalMoves, opponentModel);
   }
 
   // Layer 3: MCTS — rigged gets more time + passes rigged context for doctrine overrides
-  const mctsTime = view.difficulty === 'rigged' ? 2500 : 1500;
+  const mctsTime = view.difficulty === 'nigerian' ? 2500 : 1500;
   return mctsSelectMove(aiState, legalMoves, opponentModel, mctsTime, riggedCtx, view.opponentHand ?? undefined);
 }
 

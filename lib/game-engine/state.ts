@@ -36,7 +36,7 @@ export function initializeGame(
   }
 
   // Rigged mode: stack everything against the human player.
-  if (difficulty === 'rigged') {
+  if (difficulty === 'nigerian') {
     const humanId = playerIds.find((id) => !id.startsWith('agent-'));
     const agentId = playerIds.find((id) => id.startsWith('agent-'));
     if (humanId && agentId) {

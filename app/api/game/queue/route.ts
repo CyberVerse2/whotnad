@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let difficulty: 'hard' | 'rigged' = 'hard';
+  let difficulty: 'hard' | 'nigerian' = 'hard';
   try {
     const body = await request.json();
-    if (body.difficulty === 'rigged') difficulty = 'rigged';
+    if (body.difficulty === 'nigerian') difficulty = 'nigerian';
   } catch { /* no body or invalid JSON — default to hard */ }
 
   const result = await joinQueue(privyUserId);
