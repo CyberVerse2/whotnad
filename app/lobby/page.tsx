@@ -197,7 +197,7 @@ export default function LobbyPage() {
             <div style={{ display: 'flex', gap: 8, width: '100%' }}>
               <DifficultyButton
                 label="HARD"
-                description="6-layer AI brain"
+                description="Compete on level terms"
                 active={selectedDifficulty === 'hard'}
                 color="var(--danger)"
                 onClick={() => setSelectedDifficulty('hard')}
