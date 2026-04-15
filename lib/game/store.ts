@@ -78,7 +78,7 @@ export async function getQueueStatus(userId: string): Promise<{
   return { status: 'idle' };
 }
 
-export async function tryMatch(): Promise<{
+export async function tryMatch(difficulty: import('@/types/game').Difficulty = 'hard'): Promise<{
   matched: boolean;
   matchId?: string;
 }> {
@@ -120,7 +120,7 @@ export async function tryMatch(): Promise<{
   }
 
   const matchId = randomUUID();
-  const state = initializeGame(matchId, [p1.privyUserId, p2.privyUserId], seed);
+  const state = initializeGame(matchId, [p1.privyUserId, p2.privyUserId], seed, difficulty);
 
   await db.insert(matches).values({
     gameMatchId: matchId,
@@ -405,6 +405,8 @@ function buildAgentView(state: GameState, agentId: string): AgentGameView {
     discardPile: state.discardPile,
     turnLog: state.log,
     opponentId,
+    opponentHand: state.difficulty === 'impossible' ? (state.hands[opponentId] ?? null) : null,
+    difficulty: state.difficulty ?? 'hard',
   };
 }
 

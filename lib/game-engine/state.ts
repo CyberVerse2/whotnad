@@ -1,4 +1,4 @@
-import type { Card, GameState, PlayerAction, Shape } from '@/types/game';
+import type { Card, GameState, PlayerAction, Shape, Difficulty } from '@/types/game';
 import { createDeck } from './cards';
 import { shuffleDeck } from './shuffle';
 import { isValidPlay, getPlayableCards } from './rules';
@@ -13,7 +13,8 @@ const INITIAL_HAND_SIZE = 6;
 export function initializeGame(
   matchId: string,
   playerIds: string[],
-  seed: string
+  seed: string,
+  difficulty: Difficulty = 'hard',
 ): GameState {
   if (playerIds.length !== 2) {
     throw new Error('Whot requires exactly 2 players');
@@ -31,6 +32,31 @@ export function initializeGame(
   for (let i = 0; i < INITIAL_HAND_SIZE; i++) {
     for (const playerId of playerIds) {
       hands[playerId].push(deck[deckIndex++]);
+    }
+  }
+
+  // Impossible mode: rig Whot 20 cards away from the human player.
+  // Move any Whot cards from human hand into the deck, replace with non-Whot deck cards.
+  if (difficulty === 'impossible') {
+    const humanId = playerIds.find((id) => !id.startsWith('agent-'));
+    if (humanId) {
+      const humanHand = hands[humanId];
+      const remainingDeckStart = deckIndex;
+
+      for (let i = humanHand.length - 1; i >= 0; i--) {
+        if (humanHand[i].shape === 'whot') {
+          // Find a non-Whot card in the remaining deck to swap with
+          const swapIdx = deck.findIndex(
+            (c, idx) => idx >= remainingDeckStart && c.shape !== 'whot'
+          );
+          if (swapIdx !== -1) {
+            // Swap: human gets the deck card, deck gets the Whot
+            const whotCard = humanHand[i];
+            humanHand[i] = deck[swapIdx];
+            deck[swapIdx] = whotCard;
+          }
+        }
+      }
     }
   }
 
@@ -67,6 +93,7 @@ export function initializeGame(
     status: 'active',
     winner: null,
     log: [],
+    difficulty,
   };
 }
 

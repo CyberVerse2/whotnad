@@ -13,6 +13,7 @@ export type PlayerAction =
   | { type: 'draw' };
 
 export type GameStatus = 'waiting' | 'active' | 'finished';
+export type Difficulty = 'hard' | 'impossible';
 
 export interface GameState {
   matchId: string;
@@ -28,6 +29,7 @@ export interface GameState {
   status: GameStatus;
   winner: string | null;
   log: GameLogEntry[];
+  difficulty: Difficulty;
 }
 
 export interface GameLogEntry {
@@ -59,6 +61,8 @@ export interface AgentGameView {
   discardPile: Card[];
   turnLog: GameLogEntry[];
   opponentId: string;
+  opponentHand: Card[] | null; // only set in impossible mode
+  difficulty: Difficulty;
 }
 
 export interface MatchPoints {

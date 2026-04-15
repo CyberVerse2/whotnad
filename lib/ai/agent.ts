@@ -13,7 +13,7 @@ import type { Card, Shape, AgentGameView } from '@/types/game';
 import type { AIMove, OpponentModel } from './engine/types';
 import { SHAPES } from './engine/types';
 import { buildAIState } from './engine/state-tracker';
-import { buildOpponentModel } from './engine/opponent-model';
+import { buildOpponentModel, buildPerfectOpponentModel } from './engine/opponent-model';
 import { getBestShape } from './engine/card-valuation';
 import { mctsSelectMove } from './engine/mcts';
 import { endgameSelectMove } from './engine/endgame';
@@ -27,13 +27,30 @@ export type { AIMove };
  */
 export async function getAIMove(view: AgentGameView): Promise<AIMove> {
   const aiState = buildAIState(view);
-  const opponentModel = buildOpponentModel(
-    view.turnLog,
-    view.discardPile,
-    view.myHand,
-    view.opponentId,
-    view.opponentCardCount,
-  );
+
+  // Impossible mode: inject perfect knowledge of opponent's hand
+  if (view.difficulty === 'impossible' && view.opponentHand) {
+    // Override the Bayesian model with certainty — we know exactly what they have
+    const perfectProbs = new Map<string, number>();
+    for (const card of view.opponentHand) {
+      const key = `${card.shape}-${card.number}`;
+      perfectProbs.set(key, (perfectProbs.get(key) ?? 0) + 1);
+    }
+    // Set unseen cards to exactly what we don't know (deck only)
+    aiState.unseenCards = aiState.unseenCards.filter(
+      (c) => !view.opponentHand!.some((oh) => oh.id === c.id)
+    );
+  }
+
+  const opponentModel = view.difficulty === 'impossible' && view.opponentHand
+    ? buildPerfectOpponentModel(view.opponentHand, view.opponentCardCount)
+    : buildOpponentModel(
+        view.turnLog,
+        view.discardPile,
+        view.myHand,
+        view.opponentId,
+        view.opponentCardCount,
+      );
 
   // Get all legal moves
   const playable = getPlayableCards(

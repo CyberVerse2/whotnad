@@ -201,3 +201,45 @@ export function getOpponentWeakestSuit(model: OpponentModel): Shape {
 
   return weakest;
 }
+
+/**
+ * Build a perfect opponent model when we can see their hand (impossible mode).
+ * No inference needed — we know exactly what they have.
+ */
+export function buildPerfectOpponentModel(
+  opponentHand: import('@/types/game').Card[],
+  opponentHandSize: number,
+): OpponentModel {
+  const cardProbs = new Map<CardKey, number>();
+
+  // Set exact probabilities: 1.0 for cards in hand, 0 for everything else
+  for (const card of opponentHand) {
+    const key = cardKey(card);
+    cardProbs.set(key, (cardProbs.get(key) ?? 0) + 1);
+  }
+
+  // We know their hand perfectly — derive their dominant suit
+  const suitCounts = new Map<string, number>();
+  for (const card of opponentHand) {
+    if (card.shape !== 'whot') {
+      suitCounts.set(card.shape, (suitCounts.get(card.shape) ?? 0) + 1);
+    }
+  }
+
+  let dominantSuit: import('@/types/game').Shape | null = null;
+  let maxCount = 0;
+  for (const [shape, count] of suitCounts) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantSuit = shape as import('@/types/game').Shape;
+    }
+  }
+
+  return {
+    handSize: opponentHandSize,
+    suitCallHistory: [],
+    dominantSuit,
+    pickTopCards: [],
+    cardProbabilities: cardProbs,
+  };
+}

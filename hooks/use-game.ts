@@ -198,7 +198,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     }
   }, [state.phase, state.gameState === null, fetchGameState]);
 
-  const joinQueue = useCallback(async () => {
+  const joinQueue = useCallback(async (difficulty: 'hard' | 'impossible' = 'hard') => {
     if (!userId) {
       setState((s) => ({ ...s, error: 'Sign in before joining a match' }));
       return;
@@ -206,7 +206,7 @@ export function useGame(userId: string | null, initialMatchId?: string | null) {
     try {
       const res = await authFetch('/api/game/queue', {
         method: 'POST',
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, difficulty }),
       });
       const data = await res.json();
 

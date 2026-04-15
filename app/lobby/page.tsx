@@ -10,6 +10,7 @@ export default function LobbyPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'hard' | 'impossible'>('hard');
 
   // Check for existing session on mount
   useEffect(() => {
@@ -192,35 +193,41 @@ export default function LobbyPage() {
               <StatBox label="STREAK" value="12" color="var(--danger)" />
             </div>
 
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: 'oklch(0.25 0.06 25)', borderRadius: 20, padding: '6px 14px',
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--danger)' }} />
-              <span className="font-display" style={{
-                fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: 'var(--danger)',
-              }}>
-                HARD DIFFICULTY
-              </span>
+            {/* Difficulty selector */}
+            <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+              <DifficultyButton
+                label="HARD"
+                description="6-layer AI brain"
+                active={selectedDifficulty === 'hard'}
+                color="var(--danger)"
+                onClick={() => setSelectedDifficulty('hard')}
+              />
+              <DifficultyButton
+                label="IMPOSSIBLE"
+                description="He sees your cards"
+                active={selectedDifficulty === 'impossible'}
+                color="#9333ea"
+                onClick={() => setSelectedDifficulty('impossible')}
+              />
             </div>
           </div>
 
           <button
-            onClick={joinQueue}
+            onClick={() => joinQueue(selectedDifficulty)}
             disabled={!connected}
             style={{
               fontFamily: 'var(--font-display)',
               fontWeight: 900, fontSize: 20, letterSpacing: '0.06em',
-              background: connected ? 'var(--accent)' : 'var(--surface-3)',
+              background: connected ? (selectedDifficulty === 'impossible' ? '#9333ea' : 'var(--accent)') : 'var(--surface-3)',
               color: connected ? '#fff' : 'var(--text-muted)',
               padding: '20px 48px', borderRadius: 6, border: 'none',
               cursor: connected ? 'pointer' : 'not-allowed',
-              transition: 'transform 0.15s', width: '100%',
+              transition: 'transform 0.15s, background 0.2s', width: '100%',
             }}
             onMouseEnter={(e) => connected && (e.currentTarget.style.transform = 'scale(1.02)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            CHALLENGE TINUBU
+            {selectedDifficulty === 'impossible' ? 'ENTER THE ARENA' : 'CHALLENGE TINUBU'}
           </button>
         </div>
       )}
@@ -425,5 +432,47 @@ function StatBox({ label, value, color }: { label: string; value: string; color:
         {value}
       </p>
     </div>
+  );
+}
+
+function DifficultyButton({
+  label,
+  description,
+  active,
+  color,
+  onClick,
+}: {
+  label: string;
+  description: string;
+  active: boolean;
+  color: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        background: active ? `${color}18` : 'var(--surface-2)',
+        border: `2px solid ${active ? color : 'transparent'}`,
+        borderRadius: 8,
+        padding: '10px 8px',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+      }}
+    >
+      <p className="font-display" style={{
+        fontSize: 11, fontWeight: 900, letterSpacing: '0.1em',
+        color: active ? color : 'var(--text-muted)',
+        marginBottom: 2,
+      }}>
+        {label}
+      </p>
+      <p style={{
+        fontSize: 9, color: 'var(--text-muted)', letterSpacing: '0.02em',
+      }}>
+        {description}
+      </p>
+    </button>
   );
 }
